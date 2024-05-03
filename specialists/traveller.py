@@ -38,7 +38,57 @@ class Traveller:
         else:
             raise ValueError("LLM not recognised - Not integrated")
         return model_specialist
+    
 
+    def generate_travel_package_foundational(self, message, model_name = "gemini-pro"):
+        """
+        This function will consume message with keys:
+            destination
+            budget
+            duration
+            number of Pax
+            dates
+        """
+        travel_package_prompt = f"""You are a travel agent who is producing a comprehensive travel package given client requirements:
+                    Destination: {message["destination"]}
+                    Budget: {message["budget"]}
+                    Duration: {message["duration"]}
+                    Number of Pax: {message["number of pax"]}
+                    Dates: {message["dates"]}
+                    client unstructured prompt: {message["prompt"]}
+
+                    The package must include the following sections:
+                    "Summary"
+                    introductory and summary of the trip in one paragraph.
+                    The summary should describe in vivid detail, the main attractions, activities, and experiences that the travelers can enjoy in the trip_recommendation. 
+
+                    "Journey Highlights"
+                    A list of the main features and most exciting aspects of the package.
+                    the highlights must end off with a bold line: "Your journey takes you to: x - y - z"
+
+                    "Itinerary" 
+                    This section is an itenerary list that shows the day-by-day, hour-by-hour plan of the trip.
+                    The itinerary should include the name, location, and description of each place or activity that the travelers will visit or do each day. 
+                    Each day of the itinerary should be planned out from start to end 
+                    eg: 
+                    '1600hrs: Fly to location X by flight A (FLIGHT VENDOR: _), 1800hrs: check in at accomodation A (ACCOMODATION VENDOR: _), 2000hrs: dinner at location Y, etc.'
+                    '0800hrs: Breakfast at accomodation A (ACCOMODATION VENDOR: _). 1000hrs: do activity A (ACTIVITY VENDOR: _) at location X, Go to location Y by service B (SERVICE VENDOR: _) 1200hrs: lunch at location Y, 1400hrs: do activity B (ACTIVITY VENDOR: _) at location Z, etc.'
+    
+                    A highlights and inclusions section that lists the main features and benefits of the package. 
+                    The section should mention what is included in the price, such as flights, accommodation, meals, guides, entrance fees, etc. 
+                    A pricing section that shows the calculated SUM prices for the package
+                    The section must calculate the total cost, using information from the prices of the RECOMMENDATIONs given below only AND NOT generated.
+
+
+                    """
+        
+
+        
+
+        response_travel_package = self.model_specialist.prompt(travel_package_prompt, model_name = model_name)    
+        print(response_travel_package.text)   
+        self.response_travel_package = response_travel_package.text              
+        return {"prompt": travel_package_prompt, "response": response_travel_package}
 
     def load_data_model(self, 
                         reembed = False,
