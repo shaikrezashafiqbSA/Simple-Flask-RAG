@@ -123,27 +123,6 @@ class GHandler:
         response = model.generate_content(prompt_parts)
         return response
 
-
-    def ingest_google_sheet():
-        # READ FROM GOOGLE DRIVE URL
-        df = pd.read_csv('https://docs.google.com/spreadsheets/d/1pw96y3hZrI9jjxanfagu1cr9aioxRc2P25h00MzR72M/edit#gid=0')
-        # read from .xlsx file from .\database\travel\travel.xlsx
-        # get first sheet and 2nd sheet as 2 dataframes
-        hotels_df = pd.read_excel(r'./database/travel/travel.xlsx', sheet_name="Hotels")
-        day_trips_df = pd.read_excel(r'./database/travel/travel.xlsx', sheet_name="Day Trip")
-
-
-    def image_travel_analyse(self, 
-                             image_path, 
-                             prompt = """
-                                        You are a helpful and informative concierge bot that consumes images of travel destinations
-                                        and outputs the logistics required in enjoying the travel destination.
-                                        Essentially: the logistics of the day trips first then work backwards to the hotel and flight.
-                                      """,
-                             additional_prompt = ""):
-        response = self.analyse_image(image_path, prompt + additional_prompt)
-        print(response.text)
-        return response
     
     def embed_text(self,
                   title,
