@@ -2,9 +2,18 @@ numpy
 pandas
 python-dotenv
 openpyxl
-google-generativeai 
+
+google-generativeai
+google-cloud-aiplatform
+cohere
 anthropic
-pinecone-client
+
+python-telegram-bot
+gspread
+PyPDF2
+Pillow
+Flask
 
 tiktoken
 tqdm
+wikipedia
