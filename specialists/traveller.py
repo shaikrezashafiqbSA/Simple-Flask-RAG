@@ -56,7 +56,8 @@ class Traveller:
                     Number of Pax: {message["number of pax"]}
                     Dates: {message["dates"]}
                     client unstructured prompt: {message["prompt"]}
-
+                    If unstructured prompt is available then override the destination, budget, duration, number of pax, and dates with the unstructured prompt. 
+                    
                     The package must include the following sections:
                     "Summary"
                     introductory and summary of the trip in one paragraph.
