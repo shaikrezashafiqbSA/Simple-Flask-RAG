@@ -50,14 +50,15 @@ class Traveller:
             dates
         """
         travel_package_prompt = f"""You are a travel agent who is producing a comprehensive travel package given client requirements:
+                    Query: {message["prompt"]}
                     Destination: {message["destination"]}
                     Budget: {message["budget"]}
                     Duration: {message["duration"]}
                     Number of Pax: {message["number of pax"]}
                     Dates: {message["dates"]}
-                    client unstructured prompt: {message["prompt"]}
-                    If unstructured prompt is available then override the destination, budget, duration, number of pax, and dates with the unstructured prompt. 
-                    
+                    Where Query contains specifics about the client request.
+                    If Query contains information that overrides Destination, Budget, Duration, Number of Pax, Dates, then use the Query information instead. 
+                
                     The package must include the following sections:
                     "Summary"
                     introductory and summary of the trip in one paragraph.
