@@ -17,3 +17,4 @@ Flask
 tiktoken
 tqdm
 wikipedia
+llama-index

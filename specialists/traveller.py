@@ -49,38 +49,52 @@ class Traveller:
             number of Pax
             dates
         """
-        travel_package_prompt = f"""You are a travel agent who is producing a comprehensive travel package given client requirements:
-                    Query: {message["prompt"]}
-                    Destination: {message["destination"]}
-                    Budget: {message["budget"]}
-                    Duration: {message["duration"]}
-                    Number of Pax: {message["number of pax"]}
-                    Dates: {message["dates"]}
-                    Where Query contains specifics about the client request.
-                    If Query contains information that overrides Destination, Budget, Duration, Number of Pax, Dates, then use the Query information instead. 
-                
-                    The package must include the following sections:
-                    "Summary"
-                    introductory and summary of the trip in one paragraph.
-                    The summary should describe in vivid detail, the main attractions, activities, and experiences that the travelers can enjoy in the trip_recommendation. 
+        travel_package_prompt = f"""You are a travel agent creating a comprehensive travel package based on client requirements.
+                                    **Client Requirements:**
+                                    * Query: {message["prompt"]}
+                                    * Destination: {message["destination"]}
+                                    * Budget: {message["budget"]}
+                                    * Duration: {message["duration"]}
+                                    * Number of Pax: {message["number of pax"]}
+                                    * Dates: {message["dates"]}
 
-                    "Journey Highlights"
-                    A list of the main features and most exciting aspects of the package.
-                    the highlights must end off with a bold line: "Your journey takes you to: x - y - z"
+                                    **Important Notes:**
+                                    * Analyse the 'Query' first: 
+                                    * If the 'Query' contains information that conflicts with specified 'Destination', 'Budget', 'Duration', 'Number of Pax', or 'Dates', use the information provided in the 'Query'
 
-                    "Itinerary" 
-                    This section is an itenerary list that shows the day-by-day, hour-by-hour plan of the trip.
-                    The itinerary should include the name, location, and description of each place or activity that the travelers will visit or do each day. 
-                    Each day of the itinerary should be planned out from start to end 
-                    eg: 
-                    '1600hrs: Fly to location X by flight A (FLIGHT VENDOR: _), 1800hrs: check in at accomodation A (ACCOMODATION VENDOR: _), 2000hrs: dinner at location Y, etc.'
-                    '0800hrs: Breakfast at accomodation A (ACCOMODATION VENDOR: _). 1000hrs: do activity A (ACTIVITY VENDOR: _) at location X, Go to location Y by service B (SERVICE VENDOR: _) 1200hrs: lunch at location Y, 1400hrs: do activity B (ACTIVITY VENDOR: _) at location Z, etc.'
-    
-                    A highlights and inclusions section that lists the main features and benefits of the package. 
-                    The section should mention what is included in the price, such as flights, accommodation, meals, guides, entrance fees, etc. 
-                    A pricing section that shows the calculated SUM prices for the package
-                    The section must calculate the total cost, using information from the prices of the RECOMMENDATIONs given below only AND NOT generated.
 
+                                    **Package Sections:**
+
+                                    **Summary**
+                                    Write an engaging one-paragraph summary of the trip. Vividly describe the main attractions, activities, and experiences the travelers will enjoy.
+
+                                    **Journey Highlights**
+                                    * List the most exciting aspects of the package.  
+                                    * Include a variety of highlights (accommodation, activities, destinations).
+                                    * End with a bold statement: "Your journey takes you to: x - y - z" (listing the primary destinations).
+
+                                    **Itinerary**
+                                    * Provide a detailed day-by-day, hour-by-hour schedule.
+                                    * Include the name, location, and description of each place/activity.
+                                    * Plan each day from start to end, including:
+                                        * Transportation (flights, transfers, etc., specifying vendors when possible)
+                                        * Accommodation (specifying vendor)
+                                        * Meals (if included, specify locations where possible)
+                                        * Activities (specifying vendor when possible)
+
+                                    **Inclusions**
+                                    * List the main features included in the package price:
+                                        * Flights
+                                        * Accommodation
+                                        * Meals (specify if all-inclusive, breakfast only, etc.)
+                                        * Transportation (if included beyond flights)
+                                        * Guides
+                                        * Activities
+                                        * Entrance fees
+
+                                    **Pricing**
+                                    * Calculate the total package cost using ONLY the prices you've recommended in the itinerary. Do not generate additional prices. 
+                                    * Break down costs as much as possible (e.g., per person, per night).
 
                     """
         
