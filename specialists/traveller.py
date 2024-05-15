@@ -45,8 +45,8 @@ class Traveller:
                                              model_name = "gemini-pro"):
         """
         This function will consume message with keys:
-            where : 'Perlis'
-            when : {'dates': 'MM/DD - MM/DD', 
+            destination : 'Perlis'
+            duration : {'dates': 'MM/DD - MM/DD', 
                     'trip_length': 'total_days: 4, month: July'
                     },
             who : {'composition':'solo'/'couple'/'family'/'friends', 
@@ -61,10 +61,11 @@ class Traveller:
         # else use only "prompt"
         if message["prompt"] == "" or message["prompt"] is None:
             client_requirements = f"""
-                                * where: {message["where"]}
-                                * when: {message["when"]}
-                                * who: {message["who"]}
-                                * how: {message["how"]}
+                                * destination: {message["destination"]}
+                                * dates: {message["dates"]}
+                                * duration: {message["duration"]}
+                                * number of pax: {message["number of pax"]}
+                                * filter: {message["filter"]}
                                 * budget: {message["budget"]}
                                 """
         else:
