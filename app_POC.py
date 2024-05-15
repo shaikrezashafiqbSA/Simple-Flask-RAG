@@ -1,7 +1,10 @@
 import json
 from flask import Flask, request, jsonify
-
+from flask_cors import CORS
 from RAG.librarian import Librarian
+
+app = Flask(__name__)
+CORS(app, resources={r"/generate_package": {"origins": "http://localhost:3000"}})  # Allow localhost:3000
 
 librarian = Librarian(librarian_LLM_model = "GEMINI")
 
@@ -24,8 +27,7 @@ librarian.Traveller.load_data_model(reembed = False,
                                                     "TEST - ACCOMODATIONS":True,
                                                     "TEST - ACTIVITIES":True,
                                                     "TEST - SERVICES":True,
-                                                    }
-                                                    
+                                                    }       
                                     )
 
 app = Flask(__name__)
@@ -40,18 +42,16 @@ def generate_package():
     print(message)
     """
     message should contain: 
-    destination
-    budget
-    duration
-    number of pax
-    dates
-    """
-    # if 'itinerary_buckets' in session:
-    #     itinerary_buckets = session['itinerary_buckets']
-    # else:
-    # itinerary_buckets = librarian.Traveller.III_semantic_decomposition(message)
-    # session['itinerary_buckets'] = itinerary_buckets
+    prompt 
+    5 fields (destination, budget, duration, number of pax, dates)
+    filter (optional theme: backpacker trip, halal tour, scenic view)
+    if prompt is empty then the 5 fields should be used to generate a package
+    if prompt is not empty then the prompt should be used to generate a package
 
+    """
+
+
+    # First check if prompt is empty, if empty then 
     convo_package = librarian.Traveller.generate_travel_package_foundational(message, model_name = "gemini-pro")
 
 

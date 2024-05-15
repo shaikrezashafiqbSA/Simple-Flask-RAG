@@ -40,28 +40,41 @@ class Traveller:
         return model_specialist
     
 
-    def generate_travel_package_foundational(self, message, model_name = "gemini-pro"):
+    def generate_travel_package_foundational(self, 
+                                             message, 
+                                             model_name = "gemini-pro"):
         """
         This function will consume message with keys:
-            destination
-            budget
-            duration
-            number of Pax
-            dates
+            where : 'Perlis'
+            when : {'dates': 'MM/DD - MM/DD', 
+                    'trip_length': 'total_days: 4, month: July'
+                    },
+            who : {'composition':'solo'/'couple'/'family'/'friends', 
+                   'children' : 'yes'/'no',
+                   'pets' : 'yes'/'no'
+                   },
+            how : 'hidden gems'/'islam'/'backpacker'/'culinary'
+            how_optional : 'i want to visit the kampung peoples in Perlis and live amongst them'
+            budget : '1000'
         """
+        client_requirements = f"""
+                                * where: {message["where"]}
+                                * when: {message["when"]}
+                                * who: {message["who"]}
+                                * how: {message["how"]}
+                                * how_optional: {message["how_optional"]}
+                                * budget: {message["budget"]}
+                                """
+            
         travel_package_prompt = f"""You are a travel agent creating a comprehensive travel package based on client requirements.
                                     **Client Requirements:**
-                                    * Query: {message["prompt"]}
-                                    * Destination: {message["destination"]}
-                                    * Budget: {message["budget"]}
-                                    * Duration: {message["duration"]}
-                                    * Number of Pax: {message["number of pax"]}
-                                    * Dates: {message["dates"]}
+                                    {client_requirements}
 
                                     **Important Notes:**
-                                    * Analyse the 'Query' first: 
-                                    * If the 'Query' contains information that conflicts with specified 'Destination', 'Budget', 'Duration', 'Number of Pax', or 'Dates', use the information provided in the 'Query'
-
+                                    Analyse the 'how_optional' first: 
+                                    * If the 'how_optional' is empty, then use the 'how' to generate the travel package.
+                                    * If the 'how_optional' is not empty, then use the 'how_optional' to generate the travel package and use it as the primary focus of the travel package.
+                                
 
                                     **Package Sections:**
 
@@ -73,6 +86,7 @@ class Traveller:
                                     * Include a variety of highlights (accommodation, activities, destinations).
                                     * End with a bold statement: "Your journey takes you to: x - y - z" (listing the primary destinations).
 
+            
                                     **Itinerary**
                                     * Provide a detailed day-by-day, hour-by-hour schedule.
                                     * Include the name, location, and description of each place/activity.
@@ -97,6 +111,18 @@ class Traveller:
                                     * Break down costs as much as possible (e.g., per person, per night).
 
                     """
+
+                                    #     **Itinerary**
+                                    # * Provide a detailed day to day breakdown of the itinerary from start to end.
+                                    # * Include the name, location, and description of each place/activities for each day
+                                    #  Example: 
+                                    #  DAY 1: 
+                                    #  "description of the day listing down the activities and places to visit"
+                                    #     Activity 1: visit to X (with 1 paragraph of description and ratings and reviews if available)
+                                    #     Activity 2: visit to Y (with 1 paragraph of description and ratings and reviews if available)
+                                    #     ...
+                                    #  DAY 2:
+                                    #     Activity x: visit to z (with 1 paragraph of description and ratings and reviews if available)
         
 
         

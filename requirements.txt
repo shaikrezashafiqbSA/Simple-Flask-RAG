@@ -18,3 +18,4 @@ tiktoken
 tqdm
 wikipedia
 llama-index
+Flask-CORS
