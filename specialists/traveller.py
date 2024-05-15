@@ -54,27 +54,28 @@ class Traveller:
                    'pets' : 'yes'/'no'
                    },
             how : 'hidden gems'/'islam'/'backpacker'/'culinary'
-            how_optional : 'i want to visit the kampung peoples in Perlis and live amongst them'
+            prompt : 'i want to visit the kampung peoples in Perlis and live amongst them'
             budget : '1000'
         """
-        client_requirements = f"""
+        # check if message["prompt"] is empty or "" or None, then use the other fields to generate the travel package
+        # else use only "prompt"
+        if message["prompt"] == "" or message["prompt"] is None:
+            client_requirements = f"""
                                 * where: {message["where"]}
                                 * when: {message["when"]}
                                 * who: {message["who"]}
                                 * how: {message["how"]}
-                                * how_optional: {message["how_optional"]}
                                 * budget: {message["budget"]}
                                 """
+        else:
+            client_requirements = f"""
+                                    * user prompt: {message["prompt"]}
+                                    """
             
         travel_package_prompt = f"""You are a travel agent creating a comprehensive travel package based on client requirements.
                                     **Client Requirements:**
                                     {client_requirements}
 
-                                    **Important Notes:**
-                                    Analyse the 'how_optional' first: 
-                                    * If the 'how_optional' is empty, then use the 'how' to generate the travel package.
-                                    * If the 'how_optional' is not empty, then use the 'how_optional' to generate the travel package and use it as the primary focus of the travel package.
-                                
 
                                     **Package Sections:**
 
