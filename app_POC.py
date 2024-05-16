@@ -31,46 +31,22 @@ librarian.Traveller.load_data_model(reembed = False,
                                     )
 
 
-# @app.route('/api', methods=['POST'])
-# def generate_package():
-#     if request.method == 'POST':
-#         print(request.json) 
-#         # if 'message' not in request.json:
-#         #     return jsonify({'error': 'Missing "message" field in request'}), 400
-
-#         # message = request.json
-#         # print(message)
-
-        
-#         # # First check if prompt is empty, if empty then 
-#         # convo_package = librarian.Traveller.generate_travel_package_foundational(message, model_name = "gemini-pro")
-
-        
-#         # raw_response = convo_package["response"].text
-#         # response = jsonify({'bot_response': raw_response})
-#         response = jsonify({'bot_response': request.json})
-#         return response
-#     else:
-#         return "This endpoint only accepts POST requests", 405  # Method Not Allowed
-
-# if __name__ == '__main__':
-#     app.run(debug=True) #, host='0.0.0.0', port=5000)
-
-
-
-from flask import Flask, request
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
-
 @app.route('/api', methods=['POST'])
-def hello_world():
-  # Check if request method is POST
-  if request.method == 'POST':
-    return "Hello World"
-  else:
-    return "This endpoint only accepts POST requests", 405  # Method Not Allowed
+def generate_package():
+    if request.method == 'POST':
+        print(request.json) 
+
+        convo_package = librarian.Traveller.generate_travel_package_foundational(request.json, model_name = "gemini-pro")
+
+        
+        raw_response = convo_package["response"].text
+        response = jsonify({'bot_response': raw_response})
+        return response
+    else:
+        return "This endpoint only accepts POST requests", 405  # Method Not Allowed
 
 if __name__ == '__main__':
-  app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
+
+
+
