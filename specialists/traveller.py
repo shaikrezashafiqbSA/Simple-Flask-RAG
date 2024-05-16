@@ -64,7 +64,7 @@ class Traveller:
                                 * destination: {message["destination"]}
                                 * dates: {message["dates"]}
                                 * duration: {message["duration"]}
-                                * number of pax: {message["number of pax"]}
+                                * number of pax: {message["number_of_pax"]}
                                 * filter: {message["filter"]}
                                 * budget: {message["budget"]}
                                 """
