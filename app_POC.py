@@ -30,7 +30,6 @@ librarian.Traveller.load_data_model(reembed = False,
                                                     }       
                                     )
 
-app = Flask(__name__)
 
 @app.route('/api', methods=['POST'])
 def generate_package():
