@@ -4,7 +4,7 @@ from flask_cors import CORS
 from RAG.librarian import Librarian
 
 app = Flask(__name__)
-CORS(app, resources={r"/generate_package": {"origins": "http://localhost:3000"}})  # Allow localhost:3000
+CORS(app, resources={r"/generate_package": {"origins": "*"}})  # Allow localhost:3000
 
 librarian = Librarian(librarian_LLM_model = "GEMINI")
 
