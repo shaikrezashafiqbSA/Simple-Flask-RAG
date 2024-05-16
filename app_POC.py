@@ -32,29 +32,30 @@ librarian.Traveller.load_data_model(reembed = False,
 
 app = Flask(__name__)
 
-@app.route('/generate_package', methods=['POST'])
+@app.route('/api', methods=['POST'])
 def generate_package():
-    # if request.method == 'POST':
-    print(request.json)
-    # if 'message' not in request.json:
-    #     return jsonify({'error': 'Missing "message" field in request'}), 400
+    if request.method == 'POST':
+        print(request.json) 
+        # if 'message' not in request.json:
+        #     return jsonify({'error': 'Missing "message" field in request'}), 400
 
-    # message = request.json
-    # print(message)
+        # message = request.json
+        # print(message)
 
-    
-    # # First check if prompt is empty, if empty then 
-    # convo_package = librarian.Traveller.generate_travel_package_foundational(message, model_name = "gemini-pro")
+        
+        # # First check if prompt is empty, if empty then 
+        # convo_package = librarian.Traveller.generate_travel_package_foundational(message, model_name = "gemini-pro")
 
-
-    # raw_response = convo_package["response"].text
-    # response = jsonify({'bot_response': raw_response})
-    response = jsonify({'bot_response': request.json})
-
-    return response
+        
+        # raw_response = convo_package["response"].text
+        # response = jsonify({'bot_response': raw_response})
+        response = jsonify({'bot_response': request.json})
+        return response
+    else:
+        return "This endpoint only accepts POST requests", 405  # Method Not Allowed
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True) #, host='0.0.0.0', port=5000)
 
 
 
