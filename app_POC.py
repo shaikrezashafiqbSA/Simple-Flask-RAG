@@ -1,10 +1,10 @@
 import json
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+# from flask_cors import CORS
 from RAG.librarian import Librarian
 
 app = Flask(__name__)
-CORS(app, resources={r"/generate_package": {"origins": "*"}})  # Allow localhost:3000
+# CORS(app, resources={r"/generate_package": {"origins": "*"}})  
 
 librarian = Librarian(librarian_LLM_model = "GEMINI")
 
@@ -56,7 +56,13 @@ def generate_package():
 
 
     raw_response = convo_package["response"].text
-    return jsonify({'bot_response': raw_response})
+    response = jsonify({'bot_response': raw_response})
+
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization') # Allow common headers
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS') # Allow multiple methods
+
+    return response
 
 
 if __name__ == '__main__':
