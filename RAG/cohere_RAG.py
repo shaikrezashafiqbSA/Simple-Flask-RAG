@@ -3,7 +3,7 @@ import numpy as np
 
 from settings import COHERE_API_KEY
 import cohere
-from gdrive.gdrive_handler import GspreadHandler
+from gdrive.gdrive_handler import GspreadHandler, GdriveHandler
 
 from utils.pickle_helper import pickle_this
 
