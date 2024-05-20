@@ -5,17 +5,13 @@ openpyxl
 
 google-generativeai
 google-cloud-aiplatform
-cohere
-anthropic
 
-python-telegram-bot
 gspread
 PyPDF2
 Pillow
 Flask
+PyMuPDF
 
 tiktoken
 tqdm
-wikipedia
-llama-index
 Flask-CORS
