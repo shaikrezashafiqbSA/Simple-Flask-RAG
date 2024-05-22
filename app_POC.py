@@ -14,7 +14,7 @@ traveller = Traveller(specialist_LLM_model = "GEMINI")
 # Ask librarian to get acquinted with the specialist database
 traveller.load_data_model(reembed = False,
                             embed_id = 0,
-                            data_model_keys = {"TEST - CLIENT":"CLIENT ID",
+                            data_model_keys = {"TEST":"CLIENT ID",
                                                 "TEST - CLIENT REQUEST":"CLIENT ID",
                                                 "TEST - FLIGHTS":"FLIGHT ID",
                                                 "TEST - ACCOMODATIONS":"ACCOMODATION ID",

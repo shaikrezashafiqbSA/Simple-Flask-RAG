@@ -7,25 +7,39 @@ from pprint import pprint
 from llm_handler.GHandler import GHandler
 from settings import GEMINI_API_KEY
 import tiktoken
-
+from utils.pickle_helper import pickle_this
 class Traveller:
     def __init__(self, 
                  specialist_LLM_model = "GEMINI",
                  db_path = "./database/travel/SWTT_ Master Database.xlsx",
-                 state_path = "./database/travel/",
+                 embeddings_path = "./database/embeddings/",
                  embedding_model = "models/embedding-001"
                  ):
         self.db_path = db_path
-        self.state_path = state_path
+        self.embeddings_path = embeddings_path
         self.embedding_model = embedding_model
 
 
         self.tables = {}
         self.specialist_LLM_model = specialist_LLM_model
-        self.model_specialist = self.set_specialist_model(model = self.specialist_LLM_model)
+        self.model_specialist = self.set_foundational_LLM(model = self.specialist_LLM_model)
         self.response_travel_package = None
 
-    def set_specialist_model(self, model = "GEMINI"):
+
+    def rag_pipeline(self, query, sheet_name, worksheet_name, reembed= False):
+        df = self.get_df(sheet_name, worksheet_name)
+        if reembed:
+            embeddings = self.embed_df(df)
+            pickle_this(embeddings, pickle_name=f"{sheet_name}_{worksheet_name}", path = self.embeddings_path)
+        else:
+            embeddings = pickle_this(pickle_name=f"{sheet_name}_{worksheet_name}", path = self.embeddings_path)
+
+        query_embedding = self.query_embedding(query)
+        top_chunks_after_retrieval = self.retrieve(query_embedding, embeddings, list(df["meta_data"]))
+        response = self.augmented_generation(query, top_chunks_after_retrieval)
+        return response
+
+    def set_foundational_LLM(self, model = "GEMINI"):
         if model == "GEMINI":
             model_specialist = GHandler(GEMINI_API_KEY,                  
                             generation_config = {"temperature": 0.9,
@@ -137,19 +151,9 @@ class Traveller:
     def load_data_model(self, 
                         reembed = False,
                         embed_id = 0,
-                        data_model_keys = {"TEST - CLIENT":"CLIENT ID",
-                                            "TEST - CLIENT REQUEST":"CLIENT ID",
-                                            "TEST - FLIGHTS":"FLIGHT ID",
-                                            "TEST - ACCOMODATIONS":"ACCOMODATION ID",
-                                            "TEST - ACTIVITIES":"ACTIVITY ID",
-                                            "TEST - SERVICES":"SERVICE ID",
+                        data_model_keys = {"inventory":"ID"
                                             },
-                        reembed_table = {"TEST - CLIENT":False,
-                                        "TEST - CLIENT REQUEST":False,
-                                        "TEST - FLIGHTS":True,
-                                        "TEST - ACCOMODATIONS":False,
-                                        "TEST - ACTIVITIES":False,
-                                        "TEST - SERVICES":False,
+                        reembed_table = {"inventory":False,
                                         }
                         ):
         
@@ -163,11 +167,13 @@ class Traveller:
         else: 
             for tab in data_model_keys.keys():
                 try:
-                    self.tables[tab] = pickle_helper.pickle_this(data=None, pickle_name = f"embedded_{tab}", path=self.state_path)
+                    self.tables[tab] = pickle_helper.pickle_this(data=None, pickle_name = f"embedded_{tab}", path=self.embeddings_path)
                     print(f"TRAVELLER embedding: {tab} - LOADED")
                 except Exception as e:
                     raise ValueError(f"embedded_{tab} Not found: {e} - Please embed the data model first")
             print("TRAVELLER loaded")
+
+
     # =====================================================================
     # DATA MODEL PREPROCESSING
     # =====================================================================
@@ -180,7 +186,7 @@ class Traveller:
         tabs = pd.ExcelFile(self.db_path).sheet_names 
         tabs = [sheet for sheet in tabs if "TEST" in sheet]
         return tabs
-    
+
     def prep_data_model(self,         
                         data_model_keys = {"TEST - CLIENT":"CLIENT ID",
                                             "TEST - CLIENT REQUEST":"CLIENT ID",
@@ -267,20 +273,20 @@ class Traveller:
                 except Exception as e:
                     raise ValueError(f"Embed_df FAILED: \n{e}\n - Please investigate and debug the error")
                 
-                pickle_helper.pickle_this(data=embed_df, pickle_name = f"embedded_{tab}", path=self.state_path)
+                pickle_helper.pickle_this(data=embed_df, pickle_name = f"embedded_{tab}", path=self.embeddings_path)
                 print(f"TRAVELLER embedding: {tab} - EMBEDDED SAVED")
 
             else:
-                tables[tab] = pickle_helper.pickle_this(data=None, pickle_name = f"embedded_{tab}", path=self.state_path)
+                tables[tab] = pickle_helper.pickle_this(data=None, pickle_name = f"embedded_{tab}", path=self.embeddings_path)
                 print(f"TRAVELLER embedding: {tab} - LOADED")
 
 
             if embed_step_id == len(tables) - 1:
                 embed_step_id=""
             
-        #     pickle_helper.pickle_this(data=tables, pickle_name=f"embedded_data_model_{embed_id}", path=self.state_path)
+        #     pickle_helper.pickle_this(data=tables, pickle_name=f"embedded_data_model_{embed_id}", path=self.embeddings_path)
         #     print(f"TRAVELLER embedding: {tab} - SAVED")
-        # print(f"TRAVELLER_STATE_{embed_id}{embed_step_id} - SAVED in {self.state_path}")
+        # print(f"TRAVELLER_STATE_{embed_id}{embed_step_id} - SAVED in {self.embeddings_path}")
         return tables
 
 

@@ -20,7 +20,7 @@ class RAG:
 
 
     def embed_df(self, df, verbose=False):
-        chunks = list(df["meta_data"])
+        chunks = list(df["Text"])
 
         model="embed-english-v3.0"
         response = self.co.embed(
