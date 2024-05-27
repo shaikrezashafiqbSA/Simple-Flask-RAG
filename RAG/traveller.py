@@ -326,7 +326,7 @@ class traveller:
                                     {top_inventories}   
 
                                     ****OUTPUT****
-                                    IMPORANT NOTE: The itinerary must only include the following sections in JSON format:
+                                    IMPORANT NOTE: The itinerary must only include the following sections:
 
                                     ***summary***
                                     Write an engaging one-paragraph summary containing 100 words to recommend the destination.

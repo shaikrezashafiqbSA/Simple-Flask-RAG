@@ -16,3 +16,4 @@ PyMuPDF
 tiktoken
 tqdm
 Flask-CORS
+PyJWT
