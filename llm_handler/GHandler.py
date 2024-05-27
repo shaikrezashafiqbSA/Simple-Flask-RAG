@@ -32,7 +32,7 @@ class GHandler:
                  generation_config = {"temperature": 0.9,
                                       "top_p": 0.95,
                                       "top_k": 40,
-                                      "max_output_tokens": 1024,
+                                      "max_output_tokens": 40000,
                                       },
                  block_threshold="BLOCK_NONE"):
         """
@@ -156,9 +156,9 @@ class GHandler:
     def retrieval_query(self, query):
         model = 'models/embedding-001'
 
-        request = genai.embed_content(model=model,
+        return genai.embed_content(model=model,
                                     content=query,
-                                    task_type="retrieval_query")
+                                    task_type="retrieval_query")["embedding"]
         
     def find_best_passage(self,
                           content, 
@@ -191,3 +191,6 @@ class GHandler:
     
 
     
+    def count_tokens(self, text, model):
+        model = genai.GenerativeModel('models/gemini-1.0-pro-latest')
+        model.count_tokens(text)

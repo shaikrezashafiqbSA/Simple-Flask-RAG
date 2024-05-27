@@ -670,7 +670,6 @@ class Traveller:
                 {followup_query}
                 """
                 # check token size
-                token_count = self.calculate_token_count(followup_prompt)
                 # ask user for confirmation to send prompt to LLM
                 if input(f"Send followup prompt (token count ~ {token_count}) to LLM? (y/n): ") == "y":
                     response_travel_package = self.model_specialist.prompt(followup_prompt, model_name = model_name)
@@ -678,13 +677,3 @@ class Traveller:
                     self.response_travel_package = response_travel_package.text   
                     return {"prompt": followup_prompt, "response": response_travel_package}
             
-    def count_tokens(self, text, model="cl100k_base"):
-        # encoding for Codex models (e.g., Gemini-Pro)
-        enc = tiktoken.get_encoding(model)
-        tokens = enc.encode(text)
-        return len(tokens)
-
-    def calculate_token_count(self, text, model="cl100k_base"):
-        token_count = self.count_tokens(text, model)
-        print(f"Token size of the prompt for {model} ~ {token_count}")
-        return token_count 
