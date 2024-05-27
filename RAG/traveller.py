@@ -4,7 +4,6 @@ import pandas as pd
 import json
 from settings import GEMINI_API_KEY
 import google.generativeai as genai
-import google.ai.generativelanguage as glm
 from gdrive.gdrive_handler import GspreadHandler
 
 from scipy.spatial.distance import cosine
@@ -33,12 +32,18 @@ class traveller:
         """
         self.GEMINI_API_KEY = GEMINI_API_KEY
         if generation_config is None:
-            self.generation_config =glm.GenerationConfig(response_mime_type="application/json",
-                                                        temperature=0.9,  
-                                                        top_p=0.95,
-                                                        top_k=40,
-                                                        max_output_tokens=40000,  
-                                                    )
+            # self.generation_config =glm.GenerationConfig(response_mime_type="application/json",
+            #                                              response_schema="application/json",
+            #                                             temperature=0.9,  
+            #                                             top_p=0.95,
+            #                                             top_k=40,
+            #                                             max_output_tokens=40000,  
+            #                                         )
+            self.generation_config = {"response_mime_type": "application/json",
+                                        "temperature": 0.9,
+                                        "top_p": 0.95,
+                                        "top_k": 40,
+                                        "max_output_tokens": 40000,}
         self.safety_settings = [
             {
             "category": "HARM_CATEGORY_HARASSMENT",
@@ -195,7 +200,7 @@ class traveller:
         filtered_df = df[df['destination'].astype(str).str.contains(pattern)]
         # drop destination column
         filtered_df = filtered_df.drop(columns=['destination'])
-        filtered_df = filtered_df[["Type", "Tags", "Title", "Description"]]
+        filtered_df = filtered_df[["Type", "Tags", "Title", "Description", "VendorID"]]
         filtered_inventories_json = filtered_df.to_json(orient='records')
         return filtered_inventories_json
 
@@ -329,13 +334,14 @@ class traveller:
                                     IMPORANT NOTE: The itinerary must only include the following sections:
 
                                     ***summary***
-                                    Write an engaging one-paragraph summary containing 100 words to recommend the destination.
+                                    Write an engaging one-paragraph summary containing AT LEAST 200 words to recommend the travel itinerary
                                     Open with a captivating sentence and how it aligns with the traveller's interests (based on tags and the itinerary generated below)
                                     Expand on each tags, briefly describe what the destination offers related to each tag, using persuasive language.
             
                                     ***itinerary***
-                                    Must contain, for EACH day, a 100 word summary of the day planned. it must have activities planned around breakfast > lunch > dinner (based on inventory else suggest). 
-                                    Then for each day, walk through the activities (MUST contain 100 word vivid, persuasive description for EACH activity)
+                                    Must contain, for EACH day, at least a 200 word summary of the day planned. It must have activities planned around breakfast > lunch > dinner.
+                                    These activities should be referenced from the Available inventory, else recommend from your own contextual knowledge.  
+                                    Then for each day, walk through the activities (MUST contain at least 200 words) vivid, persuasive description for EACH activity)
                                     ALSO include pricing and availability for each activity (if available from the inventory else state unavailable)
                                     NOTE: MUST FOLLOW THE FOLLOWING FORMAT
                                     '''
