@@ -1,5 +1,6 @@
 import json
 from flask import Flask, request, jsonify
+import jwt
 from flask_cors import CORS
 from specialists.traveller import Traveller 
 
@@ -10,10 +11,26 @@ CORS(app)
 from RAG.traveller import traveller
 rag = traveller()
 
-
+def validate_token(token):
+    try:
+        secret_key = "12345"  # Replace with your actual secret key
+        payload = jwt.decode(token, secret_key, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        # Validate user_id or any other relevant checks
+        return True
+    except jwt.ExpiredSignatureError:
+        return False
+    
 @app.route('/api', methods=['POST'])
 def generate_package():
     if request.method == 'POST':
+        bearer_token = request.headers.get('Authorization')
+        if not bearer_token:
+            return "Unauthorized", 401
+
+        token = bearer_token.split()[1]  # Extract the actual token
+        if not validate_token(token):
+            return "Invalid token", 401
         print(request.json) 
         """
         Example:
@@ -26,6 +43,17 @@ def generate_package():
                         "prompt":""}
         """
         itinerary_payload = rag.generate_travel_itinerary(request.json)
+        
+        output = json.loads(itinerary_payload["response"].text)
+        return output
+    else:
+        return "This endpoint only accepts POST requests", 405  # Method Not Allowed
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
+
+
+
 
 #         raw_response = {'summary': 'Penang, an enchanting island off the northwest coast of Malaysia, beckons you with its captivating blend of foodie delights, fascinating attractions, and a touch of magic. Immerse yourself in the flavors of authentic street food, explore historical landmarks that whisper tales of the past, and step into a realm of illusions and wonders. Whether you seek adventure, cultural enrichment, or simply a magical escapade, Penang has something extraordinary to offer. Prepare to embark on an unforgettable 2-day journey filled with unforgettable experiences that will leave you spellbound and craving for more.',
 #  'itinerary': {'day 1 summary': "Your first day in Penang will be a whirlwind of flavors and historical discoveries. Begin with a tantalizing breakfast at a local hawker center, where the aroma of freshly cooked delicacies fills the air. Then, embark on a culinary adventure as you savor the iconic street food of Penang, from aromatic char kway teow to succulent asam laksa. Afterward, delve into the city's rich past by visiting the Kek Lok Si Temple, a stunning Buddhist temple complex adorned with intricate carvings and vibrant murals. As the day progresses, explore the Clan Jetties, a charming waterfront community built on stilts, and witness the vibrant street art that transforms the city's walls into an open-air gallery. Conclude your day with a memorable dinner at a traditional nyonya restaurant, where you can indulge in the unique flavors of Peranakan cuisine.",
@@ -60,14 +88,3 @@ def generate_package():
 #  'pricing': {'total_cost': '$350',
 #   'per_day_cost': '$175',
 #   'per_activity_cost': '$20-$30'}}
-        
-        output = json.loads(itinerary_payload["response"].text)
-        return output
-    else:
-        return "This endpoint only accepts POST requests", 405  # Method Not Allowed
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
-
-
-
