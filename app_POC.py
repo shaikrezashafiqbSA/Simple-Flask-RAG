@@ -56,11 +56,12 @@ def generate_package_from_model():
         # try:
         itinerary_payload = rag.generate_travel_itinerary(request.json)
         print(itinerary_payload)
-        output = json.loads(itinerary_payload["response"].text)
-        #     return output
-        # except Exception as e:
-        #     print(f"An error occurred: {e}")
-        #     return f"An error \n{e}\n occurred while generating the travel itinerary", 500  # Internal Server Error
+        try:
+            output = json.loads(itinerary_payload["response"].text)
+            return output
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return f"An error \n{e}\n occurred while generating the travel itinerary", 500  # Internal Server Error
     else:
         return "This endpoint only accepts POST requests", 405  # Method Not Allowed
     
