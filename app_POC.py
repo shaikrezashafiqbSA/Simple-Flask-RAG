@@ -31,7 +31,7 @@ def validate_token(token):
         return False
     
 @app.route('/api', methods=['POST'])
-def generate_package():
+def generate_package_from_model():
     if request.method == 'POST':
         bearer_token = request.headers.get('Authorization')
         print(bearer_token)
