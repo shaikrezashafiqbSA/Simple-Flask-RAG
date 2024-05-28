@@ -276,94 +276,102 @@ class traveller:
             # use LLM to extract out destination from the prompt
 
         jsonSchema = {
-                        "title": "Travel Itinerary",
-                        "type": "object",
-                        "properties": {
-                            "summary": {"type": "string"},
-                            "itinerary": {
+        "title": "Travel Itinerary",
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "itinerary": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "day": {"type": "string"},
+                        "title": {"type": "string"},
+                        "description": {"type": "string"},
+                        "activities": {
+                            "type": "array",
+                            "items": {
                                 "type": "object",
                                 "properties": {
-                                    "day1_summary": {"type": "string"},
-                                    "day1_itinerary": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "title": {"type": "string"},
-                                                "text": {"type": "string"},
-                                                "inventory": {"type": "string"},  # 'available!' or 'unavailable!'
-                                                "price": {"type": "number"}
-                                            }
-                                        }
-                                    },
-                                    "day2_summary": {"type": "string"},
-                                    "day2_itinerary": {
-                                        "type": "array", 
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "title": {"type": "string"},
-                                                "text": {"type": "string"},
-                                                "inventory": {"type": "string"},
-                                                "price": {"type": "number"}
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            "pricing": {
-                                "type": "object",
-                                "properties": {
-                                    "total_cost": {"type": "number"},  
-                                    "per_day_cost": {"type": "number"},
-                                    "per_activity_cost": {"type": "string"}  
-                                }
+                                    "time": {"type": "string"},
+                                    "title": {"type": "string"},
+                                    "description": {"type": "string"},
+                                    "inventory": {"type": "string"},
+                                    "price": {"type": "string"} 
+                                },
+                                "required": ["time", "title", "description"]
                             }
-                        },
-                        "required": ["summary", "itinerary", "pricing"]  # Ensure all sections are present
-                        }    
+                        }
+                    },
+                    "required": ["day", "title", "description", "activities"]
+                }
+            },
+            "pricing": {
+                "type": "object",
+                "properties": {
+                    "total_cost": {"type": "string"},
+                    "per_day_cost": {"type": "string"},
+                    "per_activity_cost": {"type": "string"}
+                }
+            }
+        },
+        "required": ["summary", "itinerary", "pricing"] 
+    }
+
         travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given client requirements and available inventory.
-                                    ****INPUTS****
-                                    ***Client Requirements:***
-                                    {client_requirements}
 
-                                    ***Available inventory:***
-                                    {top_inventories}   
+        ****INPUTS****
+        ***Client Requirements:***
+        {client_requirements}
 
-                                    ****OUTPUT****
-                                    IMPORANT NOTE: The itinerary must only include the following sections:
+        ***Available inventory:***
+        {top_inventories} 
 
-                                    ***summary***
-                                    Write an engaging one-paragraph summary containing AT LEAST 200 words to recommend the travel itinerary
-                                    Open with a captivating sentence and how it aligns with the traveller's interests (based on tags and the itinerary generated below)
-                                    Expand on each tags, briefly describe what the destination offers related to each tag, using persuasive language.
-            
-                                    ***itinerary***
-                                    Must contain, for EACH day, at least a 200 word summary of the day planned. It must have activities planned around breakfast > lunch > dinner.
-                                    These activities should be referenced from the Available inventory, else recommend from your own contextual knowledge.  
-                                    Then for each day, walk through the activities (MUST contain at least 200 words) vivid, persuasive description for EACH activity)
-                                    ALSO include pricing and availability for each activity (if available from the inventory else state unavailable)
-                                    NOTE: MUST FOLLOW THE FOLLOWING FORMAT
-                                    '''
-                                    "day 1 summary": "Welcome to Aceh, Indonesia! You're in for an amazing first day of your trip. To start off, head to Lampuuk Beach, a hidden gem known for its pristine white sand and crystal-clear water. Spend some time relaxing and enjoying the beautiful scenery. Next, visit the iconic Baiturrahman Grand Mosque, a historical landmark that showcases stunning architecture. Take a moment to admire the intricate details and learn about its significance. For lunch, try Canai Mamak, a local eatery known for its delicious traditional cuisine. Afterward, make your way to the Aceh Tsunami Museum, a thought-provoking attraction that pays tribute to the resilience of the Acehnese people. End the day with a visit to Warung Makan Hasan 3, Cabang Kreung Cut, another fantastic eatery where you can indulge in authentic Acehnese dishes. Enjoy your first day in Aceh!"
-                                    "day 1 itinerary": 
-                                    *1*: "title": "Lampuuk Beach", "text": "Lampuuk Beach in Banda Aceh is a captivating destination that aligns perfectly with your interests in Hidden Gems, Historical Landmarks, and Arts & Theatre. This serene beach offers a unique blend of natural beauty and historical significance. As you explore the area, you will discover hidden gems tucked away along the coastline, providing a sense of adventure and discovery. Lampuuk Beach also holds historical importance, with remnants of Aceh's rich heritage scattered throughout the area. The beach provides a picturesque setting for capturing stunning photographs and immersing yourself in the local culture. Whether you're strolling along the shoreline, admiring the historical landmarks, or enjoying the arts and theatre performances held nearby, Lampuuk Beach promises an unforgettable experience for your solo trip to Aceh.","inventory": "unavailable", "Price": "estimated $40"
-                                    *2* ...
-                                    *3* ...
-                                    
-                                    "day n summary": "On the nth day of your trip to Aceh, Indonesia, you will have the opportunity to explore some hidden gems and historical landmarks. Start your day by visiting Alue Naga Beach, a beautiful and secluded spot where you can relax and enjoy the serene surroundings. Afterward, head to Warung Nasi Kambing Lem Bakrie, a local eatery known for its delicious Indonesian cuisine. Next, visit Rahmatullah Mosque, a historical landmark known for its stunning architecture and cultural significance. In the afternoon, make your way to Kuta Malaka Water Boom, a popular attraction where you can have fun and cool off in the water. Finally, end your day at Banda Seafood, a renowned eatery where you can indulge in fresh and flavorful seafood dishes. Enjoy your day exploring these wonderful locations in Aceh!"
-                                    "day n itinerary":
-                                    *1*: "title":"Alue Naga Beach","text": "Located in Banda Aceh, Indonesia is a captivating destination that perfectly aligns with your interests in Hidden Gems, Historical Landmarks, and Arts & Theatre. This picturesque beach offers a serene and secluded atmosphere, making it a true hidden gem. As you explore the area, you'll discover traces of history, including remnants of the devastating 2004 tsunami, which adds a profound historical significance to the beach. Moreover, Alue Naga Beach serves as a vibrant hub for local arts and theater, providing you with the opportunity to witness and appreciate the rich cultural heritage of Aceh. With its breathtaking beauty, historical significance, and artistic charm, Alue Naga Beach is sure to offer you a memorable and fulfilling experience during your solo trip to Aceh.", "inventory": "vendor ID: x", Price: $50"
-                                    *2* ...
-                                    *3* ...
-                                    '''
-                                    ***pricing***
-                                    * Calculate the total package cost. Reference the Available Inventory for pricing if available, else state "unavailable" for all fields. 
-                                    
-                                    Follow the JSON schema strictly and fill in all required fields.
-                                    <JSONSchema>{json.dumps(jsonSchema)}</JSONSchema>
+        ****OUTPUT****
+        IMPORTANT NOTE: The itinerary must strictly adhere to the following structure:
 
-                    """
+        ***summary***
+        Write an engaging one-paragraph summary containing AT LEAST 200 words to recommend the travel itinerary.
+        Open with a captivating sentence highlighting how the itinerary aligns with the traveler's interests (based on tags and the itinerary generated below).
+        Expand on each tag, briefly describing what the destination offers related to each tag, using persuasive language.
+
+        ***itinerary***
+        For EACH day, provide:
+        - A detailed summary (at least 200 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner) 
+        - Activities should be referenced from the Available Inventory, or recommend alternatives based on your knowledge.
+        - For EACH activity, provide a vivid, persuasive description (at least 200 words).
+        - Include pricing and availability for each activity (use "unavailable" if not in inventory).
+
+        Follow this FORMAT for the itinerary section:
+        '''
+        
+        "day": "Day 1",
+        "title": "Adventure and Relaxation",
+        "description": "Welcome to Aceh, Indonesia!... (Detailed 200+ word vivid walkthrough of key highlights of the day)"
+        "activities": [
+            "time": "morning", "title": "Lampuuk Beach", "description": "...(Detailed 200+ word vivid walkthrough of the activity)", "inventory": "unavailable", "price": "estimated $40"
+            "time": "afternoon", "title": "...", "description": "...", "inventory": "...", "price": "..."
+            "time": "evening", "title": "...", "description": "...", "inventory": "...", "price": "..."
+            ]
+        ,
+        "day": "Day 2",
+        "title": "Cultural Exploration",
+        "description": "On the nth day of your trip... (Detailed 200+ word vivid walkthrough of key highlights of the day)"
+        "activities": [
+            "time": "morning", "title":"Alue Naga Beach","description": "...(Detailed 200+ word vivid walkthrough of the activity)", "inventory": "vendor ID: x", "price": "$50"
+            "time": "afternoon", "title": "...", "description": "...", "inventory": "...", "price": "..."
+            "time": "evening", "title": "...", "description": "...", "inventory": "...", "price": "..."
+            ]
+        '''
+
+        ***pricing***
+        * Calculate the total package cost, referencing the Available Inventory. If pricing isn't available, use "unavailable" for all fields.
+        'pricing': 'total_cost': 'unavailable'
+
+        Follow the JSON schema strictly and fill in all required fields.
+
+        <JSONSchema>{json.dumps(jsonSchema)}</JSONSchema>
+        """
 
         
 
