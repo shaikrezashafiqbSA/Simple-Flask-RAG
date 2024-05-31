@@ -16,7 +16,7 @@ rag = traveller()
 
 def generate_token(user_id):
     secret_key = "12345"  
-    payload = {"user_id": user_id, "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24)}
+    payload = {"user_id": user_id} #, "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24)}
     token = jwt.encode(payload, secret_key, algorithm="HS256")
     return token
 
