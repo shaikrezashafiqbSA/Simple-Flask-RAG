@@ -200,7 +200,7 @@ class traveller:
         filtered_df = df[df['destination'].astype(str).str.contains(pattern)]
         # drop destination column
         filtered_df = filtered_df.drop(columns=['destination'])
-        filtered_df = filtered_df[["Type", "Tags", "Title", "Description", "VendorID"]]
+        filtered_df = filtered_df[["Type", "Tags", "Title", "Description", "Vendor ID"]]
         filtered_inventories_json = filtered_df.to_json(orient='records')
         return filtered_inventories_json
 
