@@ -15,14 +15,14 @@ CORS(app)
 rag = traveller()
 
 def generate_token(user_id):
-    secret_key = "12345"  
+    secret_key = "314159"  
     payload = {"user_id": user_id} #, "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24)}
     token = jwt.encode(payload, secret_key, algorithm="HS256")
     return token
 
 def validate_token(token):
     try:
-        secret_key = "12345"  # Replace with your actual secret key
+        secret_key = "314159"  # Replace with your actual secret key
         payload = jwt.decode(token, secret_key, algorithms=["HS256"])
         user_id = payload.get("user_id")
         # Validate user_id or any other relevant checks
