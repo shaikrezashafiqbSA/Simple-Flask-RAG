@@ -318,7 +318,7 @@ class traveller:
         "required": ["summary", "itinerary", "pricing"] 
     }
 
-        travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given client requirements and available inventory.
+        travel_package_prompt = f"""You are a soulful and poetic travel agent creating a comprehensive itinerary given client requirements and available inventory.
 
         ****INPUTS****
         ***Client Requirements:***

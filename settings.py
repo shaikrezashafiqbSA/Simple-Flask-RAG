@@ -5,6 +5,7 @@ import os
 PORT_NUMBER = os.getenv("PORT_NUMBER")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY1 = os.getenv("GEMINI_API_KEY1")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
