@@ -3,9 +3,8 @@ import numpy as np
 import pandas as pd
 import json
 import time 
-import cohere
-from settings import GEMINI_API_KEY1 as GEMINI_API_KEY
-from settings import COHERE_API_KEY
+from settings import GEMINI_API_KEY1 as GEMINI_API_KEY1
+from settings import GEMINI_API_KEY as GEMINI_API_KEY
 import google.generativeai as genai
 from gdrive.gdrive_handler import GspreadHandler
 
@@ -18,11 +17,12 @@ WORKSHEET_NAME = "inventory_processed"
 class traveller:
     def __init__(self,
                  generation_config = None,
-                 block_threshold="BLOCK_NONE"):
+                 block_threshold="BLOCK_NONE", ):
         # To be generalised for other LLMs in the future
         # self.co = cohere.Client(COHERE_API_KEY)
-        genai.configure(api_key = GEMINI_API_KEY, )
-        self.co = cohere.Client(COHERE_API_KEY)
+        self.GEMINI_API_KEY1 = GEMINI_API_KEY1
+        self.GEMINI_API_KEY = GEMINI_API_KEY
+        # self.co = cohere.Client(COHERE_API_KEY)
         self.model_name = "gemini-1.5-pro-latest"
         self.embed_model = 'models/embedding-001'
 
@@ -34,7 +34,6 @@ class traveller:
             BLOCK_MEDIUM_AND_ABOVE = Block when medium or high probability of unsafe content
             BLOCK_LOW_AND_ABOVE = Block when low, medium or high probability of unsafe content
         """
-        self.GEMINI_API_KEY = GEMINI_API_KEY
         if generation_config is None:
             # self.generation_config =glm.GenerationConfig(response_mime_type="application/json",
             #                                              response_schema="application/json",
@@ -47,7 +46,7 @@ class traveller:
                                         "temperature": 0.9,
                                         "top_p": 0.95,
                                         "top_k": 40,
-                                        "max_output_tokens": 40000,}
+                                        "max_output_tokens": 100000,}
         self.safety_settings = [
             {
             "category": "HARM_CATEGORY_HARASSMENT",
@@ -67,22 +66,21 @@ class traveller:
             },
         ]
 
-        self.model = self.build_model(self.model_name)
 
 
-    def build_model(self, model_name):
-        genai.configure(api_key = self.GEMINI_API_KEY)
+    def build_model(self, model_name, api_key):
+        genai.configure(api_key = api_key)
 
         model = genai.GenerativeModel(model_name=model_name,
                                         generation_config=self.generation_config,
                                         safety_settings=self.safety_settings)
         
         return model
-    def count_tokens(self, text):
-        return self.model.count_tokens(text)
+    def count_tokens(self, model, text):
+        return model.count_tokens(text)
     
-    def prompt(self, query):
-        response = self.model.generate_content(query)
+    def prompt(self, model, query):
+        response = model.generate_content(query)
         # print(response.text)
         return response
 
@@ -194,7 +192,7 @@ class traveller:
     #     return top_chunks_after_retrieval
     
 
-    def filter_destinations(self, destination_query, df, columns_to_embed=["Country", "Location"], column_title="Title", top_N=5):
+    def filter_destinations(self, destination_query, df, columns_to_embed=["Country", "Location"], return_df = False, column_title="Title", top_N=5):
         # # combine the columns to embed
         df['destination'] = df[columns_to_embed].apply(lambda row: ' '.join([str(x) for x in row]), axis=1)
         # Create a regex pattern to find the query anywhere in the destination string (case-insensitive)
@@ -205,8 +203,11 @@ class traveller:
         # drop destination column
         filtered_df = filtered_df.drop(columns=['destination'])
         filtered_df = filtered_df[["Type", "Tags", "Title", "Description", "Vendor ID"]]
-        filtered_inventories_json = filtered_df.to_json(orient='records')
-        return filtered_inventories_json
+        # drop duplicates by title
+        filtered_df = filtered_df.drop_duplicates(subset=[column_title])
+
+        
+        return filtered_df
 
     def rag_pipeline(self, query, sheet_name, worksheet_name, reembed= False):
         # 1) Load data
@@ -279,17 +280,20 @@ class traveller:
 
                 <JSONSchema>{json.dumps(jsonSchema)}</JSONSchema>
                 """
-        # user_intent_fields = self.prompt(user_intent_prompt)  
-        response = self.co.chat(
-            model="command-r", 
-            message=user_intent_prompt,
-            max_tokens=200,
-            stop_sequences=["<JSONSchema>"]
-        )
+        # # user_intent_fields = self.prompt(user_intent_prompt)  
+        # response = self.co.chat(
+        #     model="command-r", 
+        #     message=user_intent_prompt,
+        #     max_tokens=200,
+        #     stop_sequences=["<JSONSchema>"]
+        # )
 
-        user_intent_fields = response.text
-        print(user_intent_fields)
-        output = json.loads(user_intent_fields)
+        # user_intent_fields = response.text
+        # print(user_intent_fields)
+
+        model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY1) 
+        response = self.prompt(model, user_intent_prompt)
+        output = json.loads(response.text)
         return output
 
     def generate_travel_itinerary(self, message):
@@ -312,7 +316,6 @@ class traveller:
             # use the other fields to generate the travel package
             pass
 
-        self.model = self.build_model(self.model_name)
         # Load the inventory
         print("Loading inventory...")
         df = self.get_df(sheet_name=SHEET_NAME, worksheet_name=WORKSHEET_NAME)
@@ -326,10 +329,12 @@ class traveller:
                                                    columns_to_embed = columns_to_embed,
                                                    column_title=column_title,
                                                    top_N = 5)
+        
         print(top_inventories)
+        top_inventories_json = top_inventories.to_json(orient='records')
         print("Generating itinerary...")
         # prompt the user to generate the travel package
-        itinerary_payload = self.generate_travel_package_foundational(message, top_inventories)
+        itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json)
         return itinerary_payload
 
 
@@ -459,9 +464,10 @@ class traveller:
         <JSONSchema>{json.dumps(jsonSchema)}</JSONSchema>
         """
 
-        
-
-        response_travel_package = self.prompt(travel_package_prompt)    
+        model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY)
+        # measure token count
+        print(f"Token count INPUT: {self.count_tokens(model, travel_package_prompt)}")
+        response_travel_package = self.prompt(model, travel_package_prompt)    
         print(response_travel_package.text)   
         self.response_travel_package = response_travel_package.text              
         return {"prompt": travel_package_prompt, "response": response_travel_package}
