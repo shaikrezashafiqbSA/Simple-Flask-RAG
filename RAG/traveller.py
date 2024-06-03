@@ -311,6 +311,79 @@ class traveller:
             """ 
             print(f"Prompt: {message['prompt']}")
             message = self.prompt_intent_classifier(message["prompt"])
+            # check if message["destination"] is "NAN"
+            if message["destination"] == "NAN":
+                empty_response = {
+                                    "itinerary": [
+                                        {
+                                            "activities": [
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                },
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                },
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                }
+                                            ],
+                                            "day": "",
+                                            "description": "",
+                                            "title": ""
+                                        },
+                                        {
+                                            "activities": [
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                },
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                },
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                }
+                                            ],
+                                            "day": "",
+                                            "description": "",
+                                            "title": ""
+                                        }
+                                    ],
+                                    "pricing": {
+                                        "total_cost": ""
+                                    },
+                                    "summary": "No destination provided. Please provide at least a destination to generate an itinerary."
+                                }
+                class EmptyResponse:
+                    def __init__(self, text):
+                        self.text = text
+                empty_response = EmptyResponse(json.dumps(empty_response))
+                # return empty response in format: itinerary_payload["response"].text)
+                itinerary_payload = {"prompt": message, "response": empty_response}
+                return itinerary_payload
             print(f"----> {message}")
         else:
             # use the other fields to generate the travel package
