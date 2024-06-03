@@ -2,7 +2,10 @@ import re
 import numpy as np
 import pandas as pd
 import json
-from settings import GEMINI_API_KEY
+import time 
+import cohere
+from settings import GEMINI_API_KEY1 as GEMINI_API_KEY
+from settings import COHERE_API_KEY
 import google.generativeai as genai
 from gdrive.gdrive_handler import GspreadHandler
 
@@ -19,6 +22,7 @@ class traveller:
         # To be generalised for other LLMs in the future
         # self.co = cohere.Client(COHERE_API_KEY)
         genai.configure(api_key = GEMINI_API_KEY, )
+        self.co = cohere.Client(COHERE_API_KEY)
         self.model_name = "gemini-1.5-pro-latest"
         self.embed_model = 'models/embedding-001'
 
@@ -225,7 +229,90 @@ class traveller:
         response = self.augmented_generation(query, top_chunks_after_retrieval)
         return response
     
+    def prompt_intent_classifier(self, message):
+        """
+        Example prompt: "i want to go to perlis for a hidden gems trip"
+        will extract out destination, dates, duration, number_of_pax, tags, budget if available
+
+        """
+
+        jsonSchema = {
+                    "type": "object",
+                    "title": "TravelDetails",
+                    "description": "Details about a travel plan including destination, dates, duration, number of pax, tags, and budget.",
+                    "properties": {
+                        "destination": { 
+                        "type": "string", 
+                        "description": "The destination of the trip." 
+                        },
+                        "dates": { 
+                        "type": "string", 
+                        "description": "The dates of the trip (e.g., 2024-06-01 to 2024-06-07)." 
+                        },
+                        "duration": { 
+                        "type": "string", 
+                        "description": "The duration of the trip (e.g., 7 days)." 
+                        },
+                        "number_of_pax": { 
+                        "type": "integer", 
+                        "description": "The number of people going on the trip." 
+                        },
+                        "filter": { 
+                        "type": "array",
+                        "description": "Tags describing the trip (e.g., adventure, hidden gems).",
+                        "items": {
+                            "type": "string"
+                        }
+                        },
+                        "budget": { 
+                        "type": "string", 
+                        "description": "The budget for the trip." 
+                        }
+                    },
+                    "required": ["destination", "dates", "duration", "number_of_pax", "filter", "budget"]
+                    }
+        user_intent_prompt = f"""You are a travel assistant. A user wants to go on a trip. Extract the following details if available: destination, dates, duration, number_of_pax, tags, and budget. If a detail is not mentioned, leave it as 'NAN'. Follow the JSON schema strictly and fill in all required fields.
+
+                <User Input>:
+                {message}
+                Follow the JSON schema strictly and fill in all required fields.
+
+                <JSONSchema>{json.dumps(jsonSchema)}</JSONSchema>
+                """
+        # user_intent_fields = self.prompt(user_intent_prompt)  
+        response = self.co.chat(
+            model="command-r", 
+            message=user_intent_prompt,
+            max_tokens=200,
+            stop_sequences=["<JSONSchema>"]
+        )
+
+        user_intent_fields = response.text
+        print(user_intent_fields)
+        output = json.loads(user_intent_fields)
+        return output
+
     def generate_travel_itinerary(self, message):
+        # Firstly check if prompt or other fields exists in message
+        if "prompt" in message:
+            # break this prompt down into destination, dates, duration, number_of_pax, filter, budget
+            """
+            populate the following fields by LLM call to break down the prompt: 
+                * destination: {message["destination"]}
+                * dates: {message["dates"]}
+                * duration: {message["duration"]}
+                * number of pax: {message["number_of_pax"]}
+                * tags: {message["filter"]}
+                * budget: {message["budget"]}
+            """ 
+            print(f"Prompt: {message['prompt']}")
+            message = self.prompt_intent_classifier(message["prompt"])
+            print(f"----> {message}")
+        else:
+            # use the other fields to generate the travel package
+            pass
+
+        self.model = self.build_model(self.model_name)
         # Load the inventory
         print("Loading inventory...")
         df = self.get_df(sheet_name=SHEET_NAME, worksheet_name=WORKSHEET_NAME)
@@ -260,19 +347,18 @@ class traveller:
         """
         # check if message["prompt"] is empty or "" or None, then use the other fields to generate the travel package
         # else use only "prompt"
-        if message["prompt"] == "" or message["prompt"] is None:
-            client_requirements = f"""
-                                * destination: {message["destination"]}
-                                * dates: {message["dates"]}
-                                * duration: {message["duration"]}
-                                * number of pax: {message["number_of_pax"]}
-                                * tags: {message["filter"]}
-                                * budget: {message["budget"]}
-                                """
-        else:
-            client_requirements = f"""
-                                    * user prompt: {message["prompt"]}
-                                    """
+        # check if message["prompt"] exists: if it does, use it to extract the destination
+        # check if "prompt" exists in message dict
+
+        
+        client_requirements = f"""
+                            * destination: {message["destination"]}
+                            * dates: {message["dates"]}
+                            * duration: {message["duration"]}
+                            * number of pax: {message["number_of_pax"]}
+                            * tags: {message["filter"]}
+                            * budget: {message["budget"]}
+                            """
             # use LLM to extract out destination from the prompt
 
         jsonSchema = {
