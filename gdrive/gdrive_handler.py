@@ -1,5 +1,7 @@
 import gspread
 import pandas as pd
+import numpy as np
+import json
 
 class GspreadHandler:
     def __init__(self, 
@@ -74,6 +76,105 @@ class GspreadHandler:
         next_row = len(sh.col_values(1)) + 1
         sh.update(f'A{next_row}', data_list)
         print(f"Data appended to '{sheet_name}' - '{worksheet_name}'")
+
+    # def update_cols(self, data, sheet_name, worksheet_name):
+    #     """
+    #     Update matching columns in a Google Sheet with data from a DataFrame,
+    #     leaving other columns untouched.
+
+    #     Args:
+    #         data (pd.DataFrame): The DataFrame containing the data to be written.
+    #         sheet_name (str): The name of the Google Sheet.
+    #         worksheet_name (str): The name of the worksheet within the Google Sheet.
+    #     """
+    #     sh = self.get_sheet(sheet_name, worksheet_name)
+    #     existing_columns = sh.row_values(1)
+
+    #     # Find overlapping columns
+    #     matching_columns = [col for col in data.columns if col in existing_columns]
+
+    #     # If no matching columns are found, raise an error (optional)
+    #     if not matching_columns:
+    #         raise ValueError("No matching columns found between DataFrame and worksheet.")
+        
+    #         # Prepare data for updating (handle various data types)
+    #     data_to_update = []
+    #     for row in data[matching_columns].values.tolist():
+    #         new_row = []
+    #         for val in row:
+    #             if isinstance(val, (np.float32, np.float64)):  # Handle NumPy floats
+    #                 new_row.append(float(val))  # Convert to standard Python float
+    #             elif isinstance(val, float):
+    #                 if np.isnan(val):
+    #                     new_row.append("")
+    #                 elif val > 1e308 or val < -1e308:
+    #                     new_row.append(str(val)) 
+    #                 else:
+    #                     new_row.append(val)
+    #             else:
+    #                 new_row.append(val)
+    #         data_to_update.append(new_row)
+    #     # Create a list of column indices for the matching columns
+    #     column_indices = [existing_columns.index(col) + 1 for col in matching_columns]
+
+    #     # Prepare data for updating (only the matching columns)
+    #     data_to_update = data[matching_columns].values.tolist()
+
+    #     # Start updating from the next available row
+    #     next_row = len(sh.col_values(1)) + 1
+
+    #     # Update each matching column individually (create Cell objects)
+    #     cell_list = []
+    #     for col_idx, col_data in zip(column_indices, zip(*data_to_update)):
+    #         for row_idx, value in enumerate(col_data):
+    #             cell_list.append(gspread.Cell(row=next_row + row_idx, col=col_idx, value=value))
+
+    #     sh.update_cells(cell_list)  # Pass the list of Cell objects
+
+    #     print(f"Data appended to '{sheet_name}' - '{worksheet_name}' (matching columns only)")
+
+    def update_cols(self, data, sheet_name, worksheet_name):
+        """
+        Update matching columns in a Google Sheet with data from a DataFrame,
+        handling data types that might cause issues with JSON serialization.
+        """
+        sh = self.get_sheet(sheet_name, worksheet_name)
+        existing_columns = sh.row_values(1)
+
+        # Find overlapping columns
+        matching_columns = [col for col in data.columns if col in existing_columns]
+
+        if not matching_columns:
+            raise ValueError("No matching columns found between DataFrame and worksheet.")
+
+        # Prepare data for updating (handle various data types)
+        data_to_update = data[matching_columns].copy()  # Create a copy to avoid modifying original DataFrame
+        
+        # Convert any problematic types
+        for col in data_to_update.columns:
+            if data_to_update[col].dtype in [np.float32, np.float64]:
+                data_to_update[col] = data_to_update[col].astype(float)
+
+        # Fill NaNs with empty strings
+        data_to_update = data_to_update.fillna('')
+
+        # Create a list of column indices for the matching columns
+        column_indices = [existing_columns.index(col) + 1 for col in matching_columns]
+
+        # Start updating from the next available row
+        next_row = len(sh.col_values(1)) + 1
+
+        # Update each matching column individually (create Cell objects)
+        cell_list = []
+        for col_idx, col_name in zip(column_indices, matching_columns):
+            col_data = data_to_update[col_name].tolist()  # Get values from the updated DataFrame
+            for row_idx, value in enumerate(col_data):
+                cell_list.append(gspread.Cell(row=next_row + row_idx, col=col_idx, value=value))
+
+        sh.update_cells(cell_list)
+
+        print(f"Data appended to '{sheet_name}' - '{worksheet_name}' (matching columns only)")
+
 
     def append_column(self, data, sheet_name, worksheet_name, column='A'):
         """

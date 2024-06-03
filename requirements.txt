@@ -7,6 +7,7 @@ openpyxl
 google-generativeai
 google-cloud-aiplatform
 
+cohere
 gspread
 PyPDF2
 Pillow
