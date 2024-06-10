@@ -1,19 +1,20 @@
 numpy
 pandas
+scipy
 python-dotenv
 openpyxl
 
 google-generativeai
 google-cloud-aiplatform
-cohere
-anthropic
 
-python-telegram-bot
+cohere
 gspread
 PyPDF2
 Pillow
 Flask
+PyMuPDF
 
 tiktoken
 tqdm
-wikipedia
+Flask-CORS
+PyJWT

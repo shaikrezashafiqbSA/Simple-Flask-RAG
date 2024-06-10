@@ -7,25 +7,39 @@ from pprint import pprint
 from llm_handler.GHandler import GHandler
 from settings import GEMINI_API_KEY
 import tiktoken
-
+from utils.pickle_helper import pickle_this
 class Traveller:
     def __init__(self, 
                  specialist_LLM_model = "GEMINI",
                  db_path = "./database/travel/SWTT_ Master Database.xlsx",
-                 state_path = "./database/travel/",
+                 embeddings_path = "./database/embeddings/",
                  embedding_model = "models/embedding-001"
                  ):
         self.db_path = db_path
-        self.state_path = state_path
+        self.embeddings_path = embeddings_path
         self.embedding_model = embedding_model
 
 
         self.tables = {}
         self.specialist_LLM_model = specialist_LLM_model
-        self.model_specialist = self.set_specialist_model(model = self.specialist_LLM_model)
+        self.model_specialist = self.set_foundational_LLM(model = self.specialist_LLM_model)
         self.response_travel_package = None
 
-    def set_specialist_model(self, model = "GEMINI"):
+
+    def rag_pipeline(self, query, sheet_name, worksheet_name, reembed= False):
+        df = self.get_df(sheet_name, worksheet_name)
+        if reembed:
+            embeddings = self.embed_df(df)
+            pickle_this(embeddings, pickle_name=f"{sheet_name}_{worksheet_name}", path = self.embeddings_path)
+        else:
+            embeddings = pickle_this(pickle_name=f"{sheet_name}_{worksheet_name}", path = self.embeddings_path)
+
+        query_embedding = self.query_embedding(query)
+        top_chunks_after_retrieval = self.retrieve(query_embedding, embeddings, list(df["meta_data"]))
+        response = self.augmented_generation(query, top_chunks_after_retrieval)
+        return response
+
+    def set_foundational_LLM(self, model = "GEMINI"):
         if model == "GEMINI":
             model_specialist = GHandler(GEMINI_API_KEY,                  
                             generation_config = {"temperature": 0.9,
@@ -38,24 +52,108 @@ class Traveller:
         else:
             raise ValueError("LLM not recognised - Not integrated")
         return model_specialist
+    
 
+    def generate_travel_package_foundational(self, 
+                                             message, 
+                                             model_name = "gemini-pro"):
+        """
+        This function will consume message with keys:
+            destination : 'Perlis'
+            duration : {'dates': 'MM/DD - MM/DD', 
+                    'trip_length': 'total_days: 4, month: July'
+                    },
+            who : {'composition':'solo'/'couple'/'family'/'friends', 
+                   'children' : 'yes'/'no',
+                   'pets' : 'yes'/'no'
+                   },
+            how : 'hidden gems'/'islam'/'backpacker'/'culinary'
+            prompt : 'i want to visit the kampung peoples in Perlis and live amongst them'
+            budget : '1000'
+        """
+        # check if message["prompt"] is empty or "" or None, then use the other fields to generate the travel package
+        # else use only "prompt"
+        if message["prompt"] == "" or message["prompt"] is None:
+            client_requirements = f"""
+                                * destination: {message["destination"]}
+                                * dates: {message["dates"]}
+                                * duration: {message["duration"]}
+                                * number of pax: {message["number_of_pax"]}
+                                * filter: {message["filter"]}
+                                * budget: {message["budget"]}
+                                """
+        else:
+            client_requirements = f"""
+                                    * user prompt: {message["prompt"]}
+                                    """
+            
+        travel_package_prompt = f"""You are a travel agent creating a comprehensive travel package based on client requirements.
+                                    **Client Requirements:**
+                                    {client_requirements}
+
+
+                                    **Package Sections:**
+
+                                    **Summary**
+                                    Write an engaging one-paragraph summary of the trip. Vividly describe the main attractions, activities, and experiences the travelers will enjoy.
+
+                                    **Journey Highlights**
+                                    * List the most exciting aspects of the package.  
+                                    * Include a variety of highlights (accommodation, activities, destinations).
+                                    * End with a bold statement: "Your journey takes you to: x - y - z" (listing the primary destinations).
+
+            
+                                    **Itinerary**
+                                    * Provide a detailed day-by-day, hour-by-hour schedule.
+                                    * Include the name, location, and description of each place/activity.
+                                    * Plan each day from start to end, including:
+                                        * Transportation (flights, transfers, etc., specifying vendors when possible)
+                                        * Accommodation (specifying vendor)
+                                        * Meals (if included, specify locations where possible)
+                                        * Activities (specifying vendor when possible)
+
+                                    **Inclusions**
+                                    * List the main features included in the package price:
+                                        * Flights
+                                        * Accommodation
+                                        * Meals (specify if all-inclusive, breakfast only, etc.)
+                                        * Transportation (if included beyond flights)
+                                        * Guides
+                                        * Activities
+                                        * Entrance fees
+
+                                    **Pricing**
+                                    * Calculate the total package cost using ONLY the prices you've recommended in the itinerary. Do not generate additional prices. 
+                                    * Break down costs as much as possible (e.g., per person, per night).
+
+                    """
+
+                                    #     **Itinerary**
+                                    # * Provide a detailed day to day breakdown of the itinerary from start to end.
+                                    # * Include the name, location, and description of each place/activities for each day
+                                    #  Example: 
+                                    #  DAY 1: 
+                                    #  "description of the day listing down the activities and places to visit"
+                                    #     Activity 1: visit to X (with 1 paragraph of description and ratings and reviews if available)
+                                    #     Activity 2: visit to Y (with 1 paragraph of description and ratings and reviews if available)
+                                    #     ...
+                                    #  DAY 2:
+                                    #     Activity x: visit to z (with 1 paragraph of description and ratings and reviews if available)
+        
+
+        
+
+        response_travel_package = self.model_specialist.prompt(travel_package_prompt, model_name = model_name)    
+        print(response_travel_package.text)   
+        self.response_travel_package = response_travel_package.text              
+        return {"prompt": travel_package_prompt, "response": response_travel_package}
 
     def load_data_model(self, 
                         reembed = False,
                         embed_id = 0,
-                        data_model_keys = {"TEST - CLIENT":"CLIENT ID",
-                                            "TEST - CLIENT REQUEST":"CLIENT ID",
-                                            "TEST - FLIGHTS":"FLIGHT ID",
-                                            "TEST - ACCOMODATIONS":"ACCOMODATION ID",
-                                            "TEST - ACTIVITIES":"ACTIVITY ID",
-                                            "TEST - SERVICES":"SERVICE ID",
+                        data_model_keys = {"inventory":"ID"
                                             },
-                        reembed_table = {"TEST - CLIENT":False,
-                                        "TEST - CLIENT REQUEST":False,
-                                        "TEST - FLIGHTS":True,
-                                        "TEST - ACCOMODATIONS":False,
-                                        "TEST - ACTIVITIES":False,
-                                        "TEST - SERVICES":False,
+                        reembed_table = {"inventory":False,
                                         }
                         ):
         
@@ -69,11 +167,13 @@ class Traveller:
         else: 
             for tab in data_model_keys.keys():
                 try:
-                    self.tables[tab] = pickle_helper.pickle_this(data=None, pickle_name = f"embedded_{tab}", path=self.state_path)
+                    self.tables[tab] = pickle_helper.pickle_this(data=None, pickle_name = f"embedded_{tab}", path=self.embeddings_path)
                     print(f"TRAVELLER embedding: {tab} - LOADED")
                 except Exception as e:
                     raise ValueError(f"embedded_{tab} Not found: {e} - Please embed the data model first")
             print("TRAVELLER loaded")
+
+
     # =====================================================================
     # DATA MODEL PREPROCESSING
     # =====================================================================
@@ -86,7 +186,7 @@ class Traveller:
         tabs = pd.ExcelFile(self.db_path).sheet_names 
         tabs = [sheet for sheet in tabs if "TEST" in sheet]
         return tabs
-    
+
     def prep_data_model(self,         
                         data_model_keys = {"TEST - CLIENT":"CLIENT ID",
                                             "TEST - CLIENT REQUEST":"CLIENT ID",
@@ -173,20 +273,20 @@ class Traveller:
                 except Exception as e:
                     raise ValueError(f"Embed_df FAILED: \n{e}\n - Please investigate and debug the error")
                 
-                pickle_helper.pickle_this(data=embed_df, pickle_name = f"embedded_{tab}", path=self.state_path)
+                pickle_helper.pickle_this(data=embed_df, pickle_name = f"embedded_{tab}", path=self.embeddings_path)
                 print(f"TRAVELLER embedding: {tab} - EMBEDDED SAVED")
 
             else:
-                tables[tab] = pickle_helper.pickle_this(data=None, pickle_name = f"embedded_{tab}", path=self.state_path)
+                tables[tab] = pickle_helper.pickle_this(data=None, pickle_name = f"embedded_{tab}", path=self.embeddings_path)
                 print(f"TRAVELLER embedding: {tab} - LOADED")
 
 
             if embed_step_id == len(tables) - 1:
                 embed_step_id=""
             
-        #     pickle_helper.pickle_this(data=tables, pickle_name=f"embedded_data_model_{embed_id}", path=self.state_path)
+        #     pickle_helper.pickle_this(data=tables, pickle_name=f"embedded_data_model_{embed_id}", path=self.embeddings_path)
         #     print(f"TRAVELLER embedding: {tab} - SAVED")
-        # print(f"TRAVELLER_STATE_{embed_id}{embed_step_id} - SAVED in {self.state_path}")
+        # print(f"TRAVELLER_STATE_{embed_id}{embed_step_id} - SAVED in {self.embeddings_path}")
         return tables
 
 
@@ -570,7 +670,6 @@ class Traveller:
                 {followup_query}
                 """
                 # check token size
-                token_count = self.calculate_token_count(followup_prompt)
                 # ask user for confirmation to send prompt to LLM
                 if input(f"Send followup prompt (token count ~ {token_count}) to LLM? (y/n): ") == "y":
                     response_travel_package = self.model_specialist.prompt(followup_prompt, model_name = model_name)
@@ -578,13 +677,3 @@ class Traveller:
                     self.response_travel_package = response_travel_package.text   
                     return {"prompt": followup_prompt, "response": response_travel_package}
             
-    def count_tokens(self, text, model="cl100k_base"):
-        # encoding for Codex models (e.g., Gemini-Pro)
-        enc = tiktoken.get_encoding(model)
-        tokens = enc.encode(text)
-        return len(tokens)
-
-    def calculate_token_count(self, text, model="cl100k_base"):
-        token_count = self.count_tokens(text, model)
-        print(f"Token size of the prompt for {model} ~ {token_count}")
-        return token_count 
