@@ -481,7 +481,7 @@ class traveller:
         * Calculate the total package cost, referencing the Available Inventory. If pricing isn't available, use "unavailable" for all fields.
         'pricing': 'total_cost': 'unavailable'
 
-        Follow the JSON schema strictly and fill in all required fields.
+        Follow the JSON schema strictly and fill in all required fields..
 
         <JSONSchema>{json.dumps(jsonSchema)}</JSONSchema>
         """
