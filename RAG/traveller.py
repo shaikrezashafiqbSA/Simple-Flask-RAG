@@ -90,107 +90,7 @@ class traveller:
         return df
 
 
-    def embed_text(self,
-                   text,
-                   title=None,
-                   task_type="retrieval_document", 
-                   model='models/embedding-001', ):
-        """
-        Task Type	                    Description
-        retrieval_query
-            	Specifies the given text is a query in a search/retrieval setting.
-        retrieval_document
-            	Specifies the given text is a document in a search/retrieval setting.
-        semantic_similiarity
-            	Specifies the given text will be used for Semantic Textual Similarity (STS).
-        classification
-            	Specifies that the embeddings will be used for classification.
-        clustering
-            	Specifies that the embeddings will be used for clustering.
 
-        """
-        return genai.embed_content(model=model,
-                                    content=text,
-                                    task_type=task_type,
-                                    title=title)["embedding"]
-    
-    def embed_df(self,
-                 df,
-                 title="Title",
-                 text="Text"):
-
-        df['Embeddings'] = df.apply(lambda row: self.embed_text(str(row[title]), str(row[text]), model=self.embed_model), axis=1)
-
-        return df
-
-    def embed_query(self, query):
-
-        return genai.embed_content(model=self.embed_model,
-                                   content=query,
-                                   task_type="retrieval_query")["embedding"]
-
-    def retrieve(self,
-                query_embedding, 
-                dataframe, 
-                top_N = 1,
-                similiarity_calculation = "raw_dot") -> pd.Series:
-        """
-        Compute the distances between the query and each document in the dataframe
-        using the dot product.
-
-        Returns:
-            A pd.Series containing a DataFrame with two columns:
-                - 'Text': The text of the top N passages.
-                - 'Score': The corresponding similarity score for each passage.
-        """
-
-        # format the dataframe to select which columns to embed
-
-        if similiarity_calculation == "raw_dot":
-            dot_products = np.dot(np.stack(dataframe['Embeddings']), query_embedding["embedding"])
-            idx = np.argsort(dot_products)[-top_N:][::-1]
-
-            # Create a DataFrame with passages and scores
-            top_passages = pd.DataFrame({'Text': dataframe.iloc[idx]['Text'], 'Score': dot_products[idx]})
-
-            # Return the DataFrame as a Series with a descriptive name
-            return top_passages.reset_index(drop=True).rename(columns={'Text': 'Passage', 'Score': 'Similarity Score'})
-        else:
-            # NOT TESTED
-            # Cosine Similarity Calculation
-            dataframe['Similarity Score'] = dataframe['Embeddings'].apply(
-                lambda x: 1 - cosine(x, query_embedding) 
-            )
-
-            # Efficient Top N Selection
-            top_passages = dataframe.nlargest(top_N, 'Similarity Score')[['Text', 'Similarity Score']]
-            top_passages.reset_index(drop=True, inplace=True)
-
-            return top_passages.rename(columns={'Text': 'Passage'})
-    
-
-
-    # def retrieve1(self, query_embedding, embeddings, chunks, top_N = 5, verbose = False):
-    #     # Calculate similarity between the user question & each chunk
-    #     similarities = [self.cosine_similarity(query_embedding, chunk) for chunk in embeddings]
-    #     if verbose:
-    #         print("similarity scores: ", similarities)
-
-    #     # Get indices of the top 10 most similar chunks
-    #     sorted_indices = np.argsort(similarities)[::-1]
-
-    #     # Keep only the top 10 indices
-    #     top_indices = sorted_indices[:top_N]
-
-    #     # Retrieve the top 10 most similar chunks
-    #     top_chunks_after_retrieval = [chunks[i] for i in top_indices]
-    #     if verbose:
-    #         print(f"Here are the top {top_N} inventories after retrieval: ")
-    #         for t in top_chunks_after_retrieval:
-    #             print("== " + t)
-
-    #     return top_chunks_after_retrieval
-    
 
     def filter_destinations(self, destination_query, df, columns_to_embed=["Country", "Location"], return_df = False, column_title="Title", top_N=5):
         # # combine the columns to embed
@@ -209,26 +109,6 @@ class traveller:
         
         return filtered_df
 
-    def rag_pipeline(self, query, sheet_name, worksheet_name, reembed= False):
-        # 1) Load data
-        df = self.get_df(sheet_name, worksheet_name)
-
-        # 2) Embed data
-        if reembed:
-            embeddings = self.embed_df(df)
-            pickle_this(embeddings, pickle_name=f"{sheet_name}_{worksheet_name}", path = "./database/embeddings/")
-        else:
-            embeddings = pickle_this(pickle_name=f"{sheet_name}_{worksheet_name}", path = "./database/embeddings/")
-
-        # 3) Embed query
-        query_embedding = self.embed_query(query=query)
-
-        # 4) Retrieve top chunks
-        top_chunks_after_retrieval = self.retrieve(query_embedding, embeddings, list(df["meta_data"]))
-
-        # 5) Generate augmented response
-        response = self.augmented_generation(query, top_chunks_after_retrieval)
-        return response
     
     def prompt_intent_classifier(self, message):
         """
@@ -402,7 +282,76 @@ class traveller:
                                                    columns_to_embed = columns_to_embed,
                                                    column_title=column_title,
                                                    top_N = 5)
-        
+        if len(top_inventories) == 0:
+            empty_response = {
+                                    "itinerary": [
+                                        {
+                                            "activities": [
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                },
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                },
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                }
+                                            ],
+                                            "day": "",
+                                            "description": "",
+                                            "title": ""
+                                        },
+                                        {
+                                            "activities": [
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                },
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                },
+                                                {
+                                                    "description": "",
+                                                    "inventory": "",
+                                                    "price": "",
+                                                    "time": "",
+                                                    "title": ""
+                                                }
+                                            ],
+                                            "day": "",
+                                            "description": "",
+                                            "title": ""
+                                        }
+                                    ],
+                                    "pricing": {
+                                        "total_cost": ""
+                                    },
+                                    "summary": "Sorry this destination is not covered in our inventory. Please choose another destination."
+                                }
+            class EmptyResponse:
+                    def __init__(self, text):
+                        self.text = text
+            empty_response = EmptyResponse(json.dumps(empty_response))
+            return  {"prompt": message, "response": empty_response, "total_input_tokens": 0, "total_output_tokens": 0}
         print(top_inventories)
         top_inventories_json = top_inventories.to_json(orient='records')
         print("Generating itinerary...")
@@ -539,8 +488,116 @@ class traveller:
 
         model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY)
         # measure token count
-        print(f"Token count INPUT: {self.count_tokens(model, travel_package_prompt)}")
+        total_input_tokens = self.count_tokens(model, travel_package_prompt)
+        print(f"Token count INPUT: {total_input_tokens.total_tokens} -- INPUT COST: ${total_input_tokens.total_tokens * (7/1e6)}")
         response_travel_package = self.prompt(model, travel_package_prompt)    
-        print(response_travel_package.text)   
-        self.response_travel_package = response_travel_package.text              
-        return {"prompt": travel_package_prompt, "response": response_travel_package}
+        total_output_tokens = self.count_tokens(model, response_travel_package.text)
+        print(f"Token count OUTPUT: {total_output_tokens.total_tokens} -- OUTPUT COST: ${total_output_tokens.total_tokens * (21/1e6)}")
+        # print(response_travel_package.text)               
+        return {"prompt": travel_package_prompt, "response": response_travel_package, "total_input_tokens": total_input_tokens, "total_output_tokens": total_output_tokens}
+    
+
+# ========================================================================================================
+# embedding methods for bigger databases
+# ========================================================================================================
+
+
+    def embed_text(self,
+                   text,
+                   title=None,
+                   task_type="retrieval_document", 
+                   model='models/embedding-001', ):
+        """
+        Task Type	                    Description
+        retrieval_query
+            	Specifies the given text is a query in a search/retrieval setting.
+        retrieval_document
+            	Specifies the given text is a document in a search/retrieval setting.
+        semantic_similiarity
+            	Specifies the given text will be used for Semantic Textual Similarity (STS).
+        classification
+            	Specifies that the embeddings will be used for classification.
+        clustering
+            	Specifies that the embeddings will be used for clustering.
+
+        """
+        return genai.embed_content(model=model,
+                                    content=text,
+                                    task_type=task_type,
+                                    title=title)["embedding"]
+    
+    def embed_df(self,
+                 df,
+                 title="Title",
+                 text="Text"):
+
+        df['Embeddings'] = df.apply(lambda row: self.embed_text(str(row[title]), str(row[text]), model=self.embed_model), axis=1)
+
+        return df
+
+    def embed_query(self, query):
+
+        return genai.embed_content(model=self.embed_model,
+                                   content=query,
+                                   task_type="retrieval_query")["embedding"]
+
+    def retrieve(self,
+                query_embedding, 
+                dataframe, 
+                top_N = 1,
+                similiarity_calculation = "raw_dot") -> pd.Series:
+        """
+        Compute the distances between the query and each document in the dataframe
+        using the dot product.
+
+        Returns:
+            A pd.Series containing a DataFrame with two columns:
+                - 'Text': The text of the top N passages.
+                - 'Score': The corresponding similarity score for each passage.
+        """
+
+        # format the dataframe to select which columns to embed
+
+        if similiarity_calculation == "raw_dot":
+            dot_products = np.dot(np.stack(dataframe['Embeddings']), query_embedding["embedding"])
+            idx = np.argsort(dot_products)[-top_N:][::-1]
+
+            # Create a DataFrame with passages and scores
+            top_passages = pd.DataFrame({'Text': dataframe.iloc[idx]['Text'], 'Score': dot_products[idx]})
+
+            # Return the DataFrame as a Series with a descriptive name
+            return top_passages.reset_index(drop=True).rename(columns={'Text': 'Passage', 'Score': 'Similarity Score'})
+        else:
+            # NOT TESTED
+            # Cosine Similarity Calculation
+            dataframe['Similarity Score'] = dataframe['Embeddings'].apply(
+                lambda x: 1 - cosine(x, query_embedding) 
+            )
+
+            # Efficient Top N Selection
+            top_passages = dataframe.nlargest(top_N, 'Similarity Score')[['Text', 'Similarity Score']]
+            top_passages.reset_index(drop=True, inplace=True)
+
+            return top_passages.rename(columns={'Text': 'Passage'})
+    
+
+    def rag_pipeline(self, query, sheet_name, worksheet_name, reembed= False):
+        # 1) Load data
+        df = self.get_df(sheet_name, worksheet_name)
+
+        # 2) Embed data
+        if reembed:
+            embeddings = self.embed_df(df)
+            pickle_this(embeddings, pickle_name=f"{sheet_name}_{worksheet_name}", path = "./database/embeddings/")
+        else:
+            embeddings = pickle_this(pickle_name=f"{sheet_name}_{worksheet_name}", path = "./database/embeddings/")
+
+        # 3) Embed query
+        query_embedding = self.embed_query(query=query)
+
+        # 4) Retrieve top chunks
+        top_chunks_after_retrieval = self.retrieve(query_embedding, embeddings, list(df["meta_data"]))
+
+        # 5) Generate augmented response
+        response = self.augmented_generation(query, top_chunks_after_retrieval)
+        return response
