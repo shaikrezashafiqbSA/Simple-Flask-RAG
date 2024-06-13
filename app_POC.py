@@ -55,7 +55,7 @@ def generate_package_from_model():
         """
         # try:
         itinerary_payload = rag.generate_travel_itinerary(request.json)
-        print(itinerary_payload)
+        # print(itinerary_payload)
         try:
             output = json.loads(itinerary_payload["response"].text)
             return output
