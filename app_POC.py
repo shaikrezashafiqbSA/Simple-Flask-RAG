@@ -101,7 +101,43 @@ def generate_package_from_model_duo():
             return f"An error \n{e}\n occurred while generating the travel itinerary", 500  # Internal Server Error
     else:
         return "This endpoint only accepts POST requests", 405  # Method Not Allowed
-       
+@app.route('/api/0', methods=['POST'])
+def generate_package_from_model_pure_LLM():
+    if request.method == 'POST':
+        bearer_token = request.headers.get('Authorization')
+        print(bearer_token)
+        if not bearer_token:
+            return "Unauthorized", 401
+
+        token = bearer_token.split()[1]  # Extract the actual token
+        print(token)
+        if not validate_token(token):
+            return "Invalid token", 401
+        print(request.json) 
+        """
+        Example:
+        request.json = {"destination":"penang",
+                        "dates":"August",
+                        "duration":"2 days",
+                        "number_of_pax":"2",
+                        "filter":"foodie, attractions, magical",
+                        "budget":"$2000",
+                        "prompt":""}
+        """
+        # try:
+        itinerary_payload = rag.generate_travel_itinerary(request.json, duo=True, pure_LLM=True)
+        # print(itinerary_payload)
+        try:
+            print(itinerary_payload["response"].text)
+            output = json.loads(itinerary_payload["response"].text)
+            return output
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return f"An error \n{e}\n occurred while generating the travel itinerary", 500  # Internal Server Error
+    else:
+        return "This endpoint only accepts POST requests", 405  # Method Not Allowed
+
+
 @app.route('/api_mock', methods=['POST'])
 def generate_package():
     if request.method == 'POST':
