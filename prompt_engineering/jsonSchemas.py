@@ -193,7 +193,7 @@ travel_jsonSchema = {
 }
 
 
-travel_jsonSchema0 = {
+travel_jsonSchema_duo = {
 "title": "Travel Itinerary",
 "type": "object",
 "properties": {

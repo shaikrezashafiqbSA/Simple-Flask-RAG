@@ -30,7 +30,7 @@ def validate_token(token):
     except jwt.ExpiredSignatureError:
         return False
     
-@app.route('/api', methods=['POST'])
+@app.route('/api/1', methods=['POST'])
 def generate_package_from_model():
     if request.method == 'POST':
         bearer_token = request.headers.get('Authorization')
@@ -57,6 +57,7 @@ def generate_package_from_model():
         itinerary_payload = rag.generate_travel_itinerary(request.json)
         # print(itinerary_payload)
         try:
+            print(itinerary_payload["response"].text)
             output = json.loads(itinerary_payload["response"].text)
             return output
         except Exception as e:
@@ -64,7 +65,43 @@ def generate_package_from_model():
             return f"An error \n{e}\n occurred while generating the travel itinerary", 500  # Internal Server Error
     else:
         return "This endpoint only accepts POST requests", 405  # Method Not Allowed
-    
+
+@app.route('/api/2', methods=['POST'])
+def generate_package_from_model_duo():
+    if request.method == 'POST':
+        bearer_token = request.headers.get('Authorization')
+        print(bearer_token)
+        if not bearer_token:
+            return "Unauthorized", 401
+
+        token = bearer_token.split()[1]  # Extract the actual token
+        print(token)
+        if not validate_token(token):
+            return "Invalid token", 401
+        print(request.json) 
+        """
+        Example:
+        request.json = {"destination":"penang",
+                        "dates":"August",
+                        "duration":"2 days",
+                        "number_of_pax":"2",
+                        "filter":"foodie, attractions, magical",
+                        "budget":"$2000",
+                        "prompt":""}
+        """
+        # try:
+        itinerary_payload = rag.generate_travel_itinerary(request.json, duo=True)
+        # print(itinerary_payload)
+        try:
+            print(itinerary_payload["response"].text)
+            output = json.loads(itinerary_payload["response"].text)
+            return output
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return f"An error \n{e}\n occurred while generating the travel itinerary", 500  # Internal Server Error
+    else:
+        return "This endpoint only accepts POST requests", 405  # Method Not Allowed
+       
 @app.route('/api_mock', methods=['POST'])
 def generate_package():
     if request.method == 'POST':
