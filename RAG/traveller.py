@@ -106,7 +106,14 @@ class traveller:
         df['Location'] = df['Location'].str.strip().str.title()
         return df
 
-
+    def update_google_sheet(self, prompt, itinerary):
+        gspread_handler = GspreadHandler(credentials_filepath=CREDENTIALS_FILE)
+        """Updates the Google Sheet with the extracted text."""
+        data = [{"prompt": prompt, "itinerary": itinerary}]
+        df = pd.DataFrame(data)
+        print("Updating Google Sheet...with:\n", df)
+        # replace with the correct sheet name 
+        gspread_handler.update_cols(df, SHEET_NAME, "prompts") #replace with the correct sheet name 
 
     def filter_destinations(self, destination_query, df, columns_to_embed=["Country", "Location"], return_df = False, column_title="Title", top_N=5):
         df = self.clean_location_column(df)
@@ -150,7 +157,7 @@ class traveller:
         output = json.loads(response.text)
         return output
 
-    def generate_travel_itinerary(self, message, duo=False):
+    def generate_travel_itinerary(self, message, duo=False, pure_LLM=False):
         # Firstly check if prompt or other fields exists in message
         if "prompt" in message:
             initial_prompt = message["prompt"]
@@ -169,36 +176,40 @@ class traveller:
         else:
             # use the other fields to generate the travel package
             pass
+        
+        if not pure_LLM:
+            # Load the inventory
+            print("Loading inventory...")
+            df = self.get_df(sheet_name=SHEET_NAME, worksheet_name=WORKSHEET_NAME)
 
-        # Load the inventory
-        print("Loading inventory...")
-        df = self.get_df(sheet_name=SHEET_NAME, worksheet_name=WORKSHEET_NAME)
-
-        # Filter inventory based on destination
-        print("Filtering inventory...")
-        columns_to_embed = ["Country", "Location"]
-        column_title = "Title"
-        top_inventories = self.filter_destinations(message["destination"],
-                                                   df, 
-                                                   columns_to_embed = columns_to_embed,
-                                                   column_title=column_title,
-                                                   top_N = 5)
-        # if len(top_inventories) == 0 and (message["destination"] not in TARGET_DESTINATIONS):
-            
-        #     empty_response = EmptyResponse(json.dumps(NULL_RESPONSE))
-        #     return  {"prompt": message, "response": empty_response, "total_input_tokens": 0, "total_output_tokens": 0}
-        print(top_inventories)
-        top_inventories_json = top_inventories.to_json(orient='records')
+            # Filter inventory based on destination
+            print("Filtering inventory...")
+            columns_to_embed = ["Country", "Location"]
+            column_title = "Title"
+            top_inventories = self.filter_destinations(message["destination"],
+                                                    df, 
+                                                    columns_to_embed = columns_to_embed,
+                                                    column_title=column_title,
+                                                    top_N = 5)
+            # if len(top_inventories) == 0 and (message["destination"] not in TARGET_DESTINATIONS):
+                
+            #     empty_response = EmptyResponse(json.dumps(NULL_RESPONSE))
+            #     return  {"prompt": message, "response": empty_response, "total_input_tokens": 0, "total_output_tokens": 0}
+            print(top_inventories)
+            top_inventories_json = top_inventories.to_json(orient='records')
+        else:
+            top_inventories_json = None
         print("Generating itinerary...")
         # prompt the user to generate the travel package
-        itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo)
+        itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM)
         return itinerary_payload
 
 
     def generate_travel_package_foundational(self, 
                                              message, 
                                              top_inventories = None,
-                                             duo=False):
+                                             duo=False,
+                                             pure_LLM=False):
         """
         This function will consume message with keys:
         * destination
@@ -218,15 +229,20 @@ class traveller:
         else:
             travel_package_inner_prompt_ = travel_package_inner_prompt
             travel_jsonSchema_ = travel_jsonSchema
-        
-        client_requirements = f"""
-                            * destination: {message["destination"]}
-                            * dates: {message["dates"]}
-                            * duration: {message["duration"]}
-                            * number of pax: {message["number_of_pax"]}
-                            * tags: {message["filter"]}
-                            * budget: {message["budget"]}
+        if pure_LLM:
+            client_requirements = f"""
+                            * prompt: {message["prompt"]} 
                             """
+            top_inventories = None
+        else:
+            client_requirements = f"""
+                                * destination: {message["destination"]}
+                                * dates: {message["dates"]}
+                                * duration: {message["duration"]}
+                                * number of pax: {message["number_of_pax"]}
+                                * tags: {message["filter"]}
+                                * budget: {message["budget"]}
+                                """
             # use LLM to extract out destination from the prompt
 
         travel_package_prompt = f"""You are a soulful and poetic travel agent creating a comprehensive itinerary given client requirements and available inventory.
@@ -252,6 +268,11 @@ class traveller:
         total_output_tokens = self.count_tokens(model, response_travel_package.text)
         print(f"Token count OUTPUT: {total_output_tokens.total_tokens} -- OUTPUT COST: ${total_output_tokens.total_tokens * (21/1e6)}")
         # print(response_travel_package.text)               
+        # do update_google_sheet without wating for response, and just return payload
+        t1 = time.time()
+        self.update_google_sheet(str(message), response_travel_package.text)
+        t2 = time.time()
+        print(f"Time taken to update Google Sheet: {t2-t1}")
         return {"prompt": travel_package_prompt, "response": response_travel_package, "total_input_tokens": total_input_tokens, "total_output_tokens": total_output_tokens}
     
 

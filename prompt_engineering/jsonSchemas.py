@@ -398,3 +398,50 @@ travel_jsonSchema = {
         },
         "required": ["summary", "itinerary", "pricing"] 
     }
+
+
+
+travel_jsonSchema = {
+    "title": "string",
+    "type": "object",
+    "properties": {
+        "summary": {"type": "string"},
+        "country": {"type": "string"},
+        "cover": {"type": "string"},
+        "itinerary": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "day": {"type": "integer"},
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "activities": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "time": {"type": "string"},
+                                "title": {"type": "string"},
+                                "description": {"type": "string"},
+                                "price": {"type": "string"},
+                                "Vendor ID": {"type": "string"},
+                                "Activity ID": {"type": "string"},
+                                "cover": {"type": "string"}
+                            },
+                            "required": ["time", "title", "description"]
+                        }
+                    }
+                },
+                "required": ["day", "title", "description", "activities"]
+            }
+        },
+        "pricing": {
+            "type": "object",
+            "properties": {
+                "total_cost": {"type": "string"}
+            }
+        }
+    },
+    "required": ["summary", "itinerary", "pricing"]
+}

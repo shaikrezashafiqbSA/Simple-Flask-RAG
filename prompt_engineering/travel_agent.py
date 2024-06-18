@@ -146,6 +146,34 @@ travel_package_inner_prompt = """
 """
 
 
+# travel_package_inner_prompt = """
+#         ****OUTPUT****
+#         IMPORTANT NOTE: The itinerary must strictly adhere to the following structure:
+
+#         ***summary***
+#         Write an engaging one-paragraph summary containing AT LEAST 100 words to recommend the travel itinerary.
+#         Open with a captivating sentence highlighting how the itinerary aligns with the traveler's interests (based on tags and the itinerary generated below).
+        
+#         ***cover***
+#         "cover": field that is placeholder for the image file to be used as a cover for this entire itinerary. Example: "cover": "/malaysia/malacca/activity/tours/1.jpg"
+
+#         ***itinerary***
+#         For EACH day, provide:
+#         - A detailed summary (at least 100 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner)
+#         - Activities should be referenced from the Available Inventory, or recommend alternatives based on your knowledge.
+#         - There should not be repeat activities in the itinerary.
+#         - For EACH activity in the itinerary , provide a vivid, persuasive description (at least 100 words).
+#         - IMPORTANT: ensure that there is at least 1 foods and places activities for each day and time slot.
+#         - IMPORTANT: ensure that there are morning, afternoon, evening activities for each day.
+#         - Include pricing and availability for each activity (use "NA" if not in inventory but provide estimations if you are able to for price).
+#         - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory.
+#         - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. else just put a placeholder url.
+#         - the activities array should have at least 3 activities per day. and each day should have a morning, afternoon, and evening activity.
+
+#         ***pricing***
+#         * Calculate the total package cost for total pax, referencing the Available Inventory else sum from the constituent activities and estimate from your knowledge.
+# """
+
 # =============================================================================
 # old travel agent
 # =============================================================================
