@@ -10,9 +10,9 @@ from gdrive.gdrive_handler import GspreadHandler
 
 from scipy.spatial.distance import cosine
 from utils.pickle_helper import pickle_this
-from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema
+from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema, travel_jsonSchema_duo
 from prompt_engineering.responses import EMPTY_RESPONSE, NULL_RESPONSE
-from prompt_engineering.travel_agent import travel_package_inner_prompt
+from prompt_engineering.travel_agent import travel_package_inner_prompt, travel_package_inner_prompt_duo
 
 CREDENTIALS_FILE = 'smart-platform.json'
 SHEET_NAME = "Master Database" 
@@ -134,19 +134,23 @@ class traveller:
         will extract out destination, dates, duration, number_of_pax, tags, budget if available
 
         """
-        user_intent_prompt = f"""You are a travel assistant. A user wants to go on a trip. Extract the following details if available: destination, dates, duration, number_of_pax, tags, and budget. If a detail is not mentioned, leave it as 'NAN'.
-                <User Input>:
-                {message}
-                Follow the JSON schema strictly and fill in all required fields.
-                <JSONSchema>{json.dumps(intent_jsonSchema)}</JSONSchema>
-                """
+        user_intent_prompt = f"""You are a travel assistant. A user wants to go on a trip. 
+        Extract the following details if available: destination, dates, duration, number_of_pax, tags, and budget. 
+        If a detail is not mentioned, leave it as 'NAN'.
+        If duration is NAN, assume it is a 3-day trip for 1 person.
+        IMPORTANT: If the destination is fictional or nonsensical, return 'NAN' for destination.
+        <User Input>:
+        {message}
+        Follow the JSON schema strictly and fill in all required fields.
+        <JSONSchema>{json.dumps(intent_jsonSchema)}</JSONSchema>
+        """
 
         model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY) 
         response = self.prompt(model, user_intent_prompt)
         output = json.loads(response.text)
         return output
 
-    def generate_travel_itinerary(self, message):
+    def generate_travel_itinerary(self, message, duo=False):
         # Firstly check if prompt or other fields exists in message
         if "prompt" in message:
             initial_prompt = message["prompt"]
@@ -179,21 +183,22 @@ class traveller:
                                                    columns_to_embed = columns_to_embed,
                                                    column_title=column_title,
                                                    top_N = 5)
-        if len(top_inventories) == 0 and (message["destination"] not in TARGET_DESTINATIONS):
+        # if len(top_inventories) == 0 and (message["destination"] not in TARGET_DESTINATIONS):
             
-            empty_response = EmptyResponse(json.dumps(NULL_RESPONSE))
-            return  {"prompt": message, "response": empty_response, "total_input_tokens": 0, "total_output_tokens": 0}
+        #     empty_response = EmptyResponse(json.dumps(NULL_RESPONSE))
+        #     return  {"prompt": message, "response": empty_response, "total_input_tokens": 0, "total_output_tokens": 0}
         print(top_inventories)
         top_inventories_json = top_inventories.to_json(orient='records')
         print("Generating itinerary...")
         # prompt the user to generate the travel package
-        itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json)
+        itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo)
         return itinerary_payload
 
 
     def generate_travel_package_foundational(self, 
                                              message, 
-                                             top_inventories = None,):
+                                             top_inventories = None,
+                                             duo=False):
         """
         This function will consume message with keys:
         * destination
@@ -207,7 +212,12 @@ class traveller:
         # else use only "prompt"
         # check if message["prompt"] exists: if it does, use it to extract the destination
         # check if "prompt" exists in message dict
-
+        if duo:
+            travel_package_inner_prompt_ = travel_package_inner_prompt_duo
+            travel_jsonSchema_ = travel_jsonSchema_duo
+        else:
+            travel_package_inner_prompt_ = travel_package_inner_prompt
+            travel_jsonSchema_ = travel_jsonSchema
         
         client_requirements = f"""
                             * destination: {message["destination"]}
@@ -228,9 +238,9 @@ class traveller:
         ***Available inventory:***
         {top_inventories}
         Following content outline:
-        {travel_package_inner_prompt}
+        {travel_package_inner_prompt_}
         Follow the JSON schema strictly (from the content ouline above) fill in all required fields:
-        <JSONSchema>{json.dumps(travel_jsonSchema)}</JSONSchema>
+        <JSONSchema>{json.dumps(travel_jsonSchema_)}</JSONSchema>
 
         Finally, use at least 100000 tokens to generate the itinerary.
         """
