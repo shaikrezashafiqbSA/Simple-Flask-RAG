@@ -10,9 +10,9 @@ from gdrive.gdrive_handler import GspreadHandler
 
 from scipy.spatial.distance import cosine
 from utils.pickle_helper import pickle_this
-from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema, travel_jsonSchema_duo
+from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema_1, travel_jsonSchema_2
 from prompt_engineering.responses import EMPTY_RESPONSE, NULL_RESPONSE
-from prompt_engineering.travel_agent import travel_package_inner_prompt, travel_package_inner_prompt_duo
+from prompt_engineering.travel_agent import travel_package_inner_prompt_1, travel_package_inner_prompt_2
 
 CREDENTIALS_FILE = 'smart-platform.json'
 SHEET_NAME = "Master Database" 
@@ -142,7 +142,7 @@ class traveller:
         output = json.loads(response.text)
         return output
 
-    def generate_travel_itinerary(self, message, duo=False, pure_LLM=False, stream=False):
+    def generate_travel_itinerary(self, message, duo=False, pure_LLM=False, stream=False, version=2):
         # Firstly check if prompt or other fields exists in message
         if "prompt" in message:
             initial_prompt = message["prompt"]
@@ -184,9 +184,9 @@ class traveller:
         print("Generating itinerary...")
         # prompt the user to generate the travel package
         if stream:
-            return self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM, stream=stream)
+            return self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM, stream=stream, version=version)
         else:
-            itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM)
+            itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM, version=version, stream=stream)
             return itinerary_payload
 
     def fix_json(self,text):
@@ -201,7 +201,8 @@ class traveller:
                                              top_inventories = None,
                                              duo=False,
                                              pure_LLM=False, 
-                                             stream=False):
+                                             stream=False, 
+                                             version=2):
         """
         This function will consume message with keys:
         * destination
@@ -215,12 +216,12 @@ class traveller:
         # else use only "prompt"
         # check if message["prompt"] exists: if it does, use it to extract the destination
         # check if "prompt" exists in message dict
-        if duo:
-            travel_package_inner_prompt_ = travel_package_inner_prompt_duo
-            travel_jsonSchema_ = travel_jsonSchema_duo
+        if version == 1:
+            travel_package_inner_prompt_ = travel_package_inner_prompt_1
+            travel_jsonSchema_ = travel_jsonSchema_1
         else:
-            travel_package_inner_prompt_ = travel_package_inner_prompt
-            travel_jsonSchema_ = travel_jsonSchema
+            travel_package_inner_prompt_ = travel_package_inner_prompt_2
+            travel_jsonSchema_ = travel_jsonSchema_2
         if pure_LLM:
             client_requirements = f"""
                             * prompt: {message["prompt"]} 

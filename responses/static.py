@@ -272,3 +272,195 @@ static_response = {
     },
     "summary": "For the discerning foodie looking for a unique and enriching experience, our 6-day Perlis itinerary is your perfect adventure.  Perlis, often called \"The Land of Harumanis,\" boasts a vibrant culinary scene with mouthwatering specialties like the renowned Harumanis mango. Indulge in the flavors of local delights, whether it's sampling traditional dishes at charming eateries or joining a guided food tour. Immerse yourself in Perlis's natural wonders, exploring ancient caves and lush rainforests for a truly unforgettable experience."
 }
+
+
+static_response2 = {
+    "country": "Indonesia",
+    "cover": "/indonesia/bali/cover.jpg",
+    "itinerary": [
+        {
+            "city": "Ubud",
+            "cover": "/indonesia/bali/ubud_morning.jpg",
+            "day": 1,
+            "description": "Start your day with a scenic drive to Ubud, the cultural heart of Bali, renowned for its artistic charm and tranquil ambiance. Immerse yourself in the beauty of the rice paddies, explore traditional Balinese temples, and delve into the artistry of local crafts.",
+            "foods": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/warung_breakfast.jpg",
+                    "description": "Begin your day with a delightful breakfast at a traditional warung (local eatery) savoring authentic Balinese flavors like Nasi Campur, a flavorful rice dish with various side dishes.",
+                    "name": "Breakfast at a local warung"
+                }
+            ],
+            "places": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/tegalalang_rice_terrace.jpg",
+                    "description": "Witness the breathtaking beauty of the Tegalalang Rice Terrace, a mesmerizing cascade of emerald rice paddies stretching across the hillside. Capture stunning photos and immerse yourself in the tranquil atmosphere.",
+                    "name": "Tegalalang Rice Terrace"
+                }
+            ],
+            "tags": [
+                "nature",
+                "culture"
+            ],
+            "time": "morning",
+            "title": "Morning Adventure in Ubud"
+        },
+        {
+            "city": "Ubud",
+            "cover": "/indonesia/bali/ubud_afternoon.jpg",
+            "day": 1,
+            "description": "In the afternoon, delve deeper into Ubud's artistic heritage, visiting workshops and galleries showcasing the intricate craftsmanship of Balinese artisans. Discover the artistry of woodcarving, silver jewelry making, and traditional painting.",
+            "foods": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/balinese_restaurant.jpg",
+                    "description": "Enjoy a delicious lunch at a traditional Balinese restaurant, savoring authentic dishes like Babi Guling, a succulent roasted pork, or Ayam Betutu, a flavorful chicken dish.",
+                    "name": "Lunch at a traditional Balinese restaurant"
+                }
+            ],
+            "places": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/ubud_art_market.jpg",
+                    "description": "Explore the vibrant Ubud Art Market, a bustling hub brimming with traditional Balinese crafts, souvenirs, and local artwork. Find unique treasures to take home as a reminder of your Bali adventure.",
+                    "name": "Ubud Art Market"
+                }
+            ],
+            "tags": [
+                "art",
+                "culture"
+            ],
+            "time": "afternoon",
+            "title": "Afternoon of Artistic Exploration"
+        },
+        {
+            "city": "Ubud",
+            "cover": "/indonesia/bali/ubud_evening.jpg",
+            "day": 1,
+            "description": "As the day draws to a close, immerse yourself in the tranquil ambiance of Ubud, visiting a traditional Balinese temple or enjoying a relaxing spa experience. Savor a delectable dinner at a restaurant overlooking the rice paddies, enjoying the serene beauty of the Balinese evening.",
+            "foods": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/ubud_dinner.jpg",
+                    "description": "Indulge in a delightful dinner at a restaurant offering panoramic views of the rice paddies, savoring the flavors of Balinese cuisine under the starry sky.",
+                    "name": "Dinner at a restaurant overlooking the rice paddies"
+                }
+            ],
+            "places": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/uluwatu_temple.jpg",
+                    "description": "Visit the Uluwatu Temple, perched dramatically on a clifftop overlooking the Indian Ocean. Witness the Kecak fire dance performance, a captivating ritual dance that embodies the essence of Balinese culture.",
+                    "name": "Uluwatu Temple"
+                }
+            ],
+            "tags": [
+                "spiritual",
+                "relaxation"
+            ],
+            "time": "evening",
+            "title": "Evening Serenity in Ubud"
+        },
+        {
+            "city": "Nusa Dua",
+            "cover": "/indonesia/bali/nusadua_morning.jpg",
+            "day": 2,
+            "description": "Embark on a scenic drive to Nusa Dua, a luxurious beach resort area known for its pristine beaches and world-class amenities. Explore the vibrant marine life of the coral reefs, relax on the soft sands, and enjoy the serenity of the tropical paradise.",
+            "foods": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/nusadua_breakfast.jpg",
+                    "description": "Start your day with a delicious breakfast at a beachfront restaurant, enjoying the invigorating ocean breeze and the panoramic views of the turquoise waters.",
+                    "name": "Breakfast at a beachfront restaurant"
+                }
+            ],
+            "places": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/nusadua_beach.jpg",
+                    "description": "Relax and unwind on the pristine white sands of Nusa Dua Beach, enjoying the warm sunshine and the gentle caress of the ocean waves. Indulge in water sports activities like snorkeling, diving, or simply soak up the tropical paradise.",
+                    "name": "Nusa Dua Beach"
+                }
+            ],
+            "tags": [
+                "beach",
+                "water sports"
+            ],
+            "time": "morning",
+            "title": "Morning Adventure in Nusa Dua"
+        },
+        {
+            "city": "Nusa Dua",
+            "cover": "/indonesia/bali/nusadua_afternoon.jpg",
+            "day": 2,
+            "description": "Indulge in a culinary adventure in Nusa Dua, exploring the diverse flavors of Balinese cuisine and international delicacies. Sample fresh seafood, savor aromatic spices, and discover the local favorites.",
+            "foods": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/nusadua_seafood.jpg",
+                    "description": "Enjoy a delightful lunch at a seafood restaurant, savoring the freshest catches from the Indian Ocean. Indulge in grilled fish, succulent prawns, or flavorful lobster dishes.",
+                    "name": "Lunch at a seafood restaurant"
+                }
+            ],
+            "places": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/waterbom_bali.jpg",
+                    "description": "Experience an exhilarating day at Waterbom Bali, a renowned water park offering thrilling slides, lazy rivers, and exciting water adventures for all ages.",
+                    "name": "Waterbom Bali"
+                }
+            ],
+            "tags": [
+                "food",
+                "relaxation"
+            ],
+            "time": "afternoon",
+            "title": "Afternoon of Culinary Delights"
+        },
+        {
+            "city": "Nusa Dua",
+            "cover": "/indonesia/bali/nusadua_evening.jpg",
+            "day": 2,
+            "description": "As your Balinese adventure comes to a close, enjoy a leisurely evening in Nusa Dua, reflecting on the unforgettable memories created. Savor a final dinner at a restaurant offering stunning sunset views, bidding farewell to the magic of Bali.",
+            "foods": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/nusadua_dinner.jpg",
+                    "description": "Enjoy a memorable farewell dinner at a restaurant offering breathtaking sunset views over the Indian Ocean. Savor the flavors of Balinese cuisine or international delicacies, as the sky transforms into a canvas of vibrant hues.",
+                    "name": "Dinner at a restaurant with sunset views"
+                }
+            ],
+            "places": [
+                {
+                    "Activity ID": "NA",
+                    "Vendor ID": "NA",
+                    "cover": "/indonesia/bali/nusadua_market.jpg",
+                    "description": "Take a stroll through a local market, browsing through the vibrant stalls filled with traditional crafts, souvenirs, and local delicacies. Find unique treasures to take home as a reminder of your Bali adventure.",
+                    "name": "Shopping at a local market"
+                }
+            ],
+            "tags": [
+                "relaxation",
+                "food"
+            ],
+            "time": "evening",
+            "title": "Evening Relaxation and Farewell"
+        }
+    ],
+    "pricing": {
+        "total_cost": "NA"
+    },
+    "summary": "Embark on a whirlwind adventure in Bali, a tropical paradise known for its breathtaking natural beauty, vibrant culture, and spiritual essence. This two-day itinerary caters to your desire for a quick escape, immersing you in the heart of Bali's charm. Witness the dramatic beauty of rice paddies cascading down lush hillsides, discover the ancient rituals and traditions enshrined in temples, and experience the warm hospitality of the Balinese people. Indulge in the diverse flavors of Balinese cuisine, from aromatic curries to fresh seafood, and find serenity in the tranquil atmosphere of traditional spas. Prepare for an unforgettable journey, where every moment is infused with the magic of Bali."
+}
