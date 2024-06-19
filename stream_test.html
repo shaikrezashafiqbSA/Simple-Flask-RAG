@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    </head>
+
+<body>
+    <div id="container">
+        <h1>AI Trip Itinerary Generator</h1>
+
+        <div id="prompt-area">
+            <label for="prompt-input">Enter your trip details:</label>
+            <textarea id="prompt-input"
+                placeholder="i want to go to penang in august for 3 days with 2 people. i want to experience foodie, attractions, magical. my budget is $2000."></textarea>
+            <button onclick="generateItinerary()">Generate Itinerary</button>
+        </div>
+        <div id="summary-container"> <h2>Trip Summary</h2>
+            <div id="summary"></div>
+        </div>
+
+        <div id="itinerary-area">
+            <h2>Your Itinerary:</h2>
+            <div id="output"></div>
+            <div id="pricing"></div>
+        </div>
+    </div>
+    <script>
+        const outputElement = document.getElementById('output');
+        const promptInput = document.getElementById('prompt-input');
+        const itineraryArea = document.getElementById('itinerary-area');
+        const summaryElement = document.getElementById('summary');
+        const pricingElement = document.getElementById('pricing');
+        const summaryContainer = document.getElementById('summary-container');
+
+        function generateItinerary() {
+            outputElement.innerHTML = ""; // Clear previous output
+            summaryElement.textContent = ""; // Clear previous summary
+            pricingElement.textContent = ""; // Clear previous pricing
+            itineraryArea.style.display = 'block'; // Show itinerary area
+            summaryContainer.style.display = 'block'; // Show the summary container initially
+
+            fetch('http://127.0.0.1:5000/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: promptInput.value })
+            })
+            .then(response => {
+                const reader = response.body.getReader();
+                let buffer = '';
+
+                return new ReadableStream({
+                    start(controller) {
+                        function push() {
+                            reader.read().then(({ done, value }) => {
+                                if (done) {
+                                    // Entire response received, parse and display
+                                    controller.close();
+                                    return;
+                                }
+                                const chunkText = new TextDecoder("utf-8").decode(value);
+                                buffer += chunkText;
+
+                                // Attempt to parse the chunk
+                                try {
+                                    const chunkJson = JSON.parse(buffer);
+                                    displayChunk(chunkJson);
+                                    buffer = ''; // Clear the buffer after successful parse
+                                } catch (error) {
+                                    // Chunk might be incomplete, wait for more data
+                                }
+
+                                push();
+                            });
+                        }
+                        push();
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                outputElement.textContent = "Error fetching itinerary. Please try again.";
+            });
+        }
+
+        function displayChunk(chunkJson) {
+            if ('summary' in chunkJson) {
+                summaryElement.textContent = chunkJson.summary;
+            } else if ('itinerary' in chunkJson) {
+                const itineraryItem = chunkJson.itinerary; 
+                const dayIndex = itineraryItem.day; 
+                // Create a new day section if needed
+                let dayElement = document.getElementById(`day-${dayIndex}`);
+                if (!dayElement) {
+                    dayElement = document.createElement('div');
+                    dayElement.id = `day-${dayIndex}`;
+                    dayElement.innerHTML = `<h3>Day ${dayIndex}: ${itineraryItem.title}</h3>`;
+                    outputElement.appendChild(dayElement);
+                }
+
+                // Add the description and activities to the day section
+                dayElement.innerHTML += `<p>${itineraryItem.description}</p>`;
+                dayElement.innerHTML += '<div class="activities">';
+                for (const activity of itineraryItem.foods) {
+                    dayElement.innerHTML += `<h4>Foods: ${activity.name}</h4>`;
+                    dayElement.innerHTML += `<p>${activity.description}</p>`;
+                    // Add more details about the activity as needed (price, etc.)
+                }
+                for (const activity of itineraryItem.places) {
+                    dayElement.innerHTML += `<h4>Places: ${activity.name}</h4>`;
+                    dayElement.innerHTML += `<p>${activity.description}</p>`;
+                    // Add more details about the activity as needed (price, etc.)
+                }
+                dayElement.innerHTML += '</div>';
+            } else if ('pricing' in chunkJson) {
+                pricingElement.textContent = `Total Cost: ${chunkJson.pricing.total_cost}`;
+            }
+        }
+
+    </script>
+</body>
+</html>
