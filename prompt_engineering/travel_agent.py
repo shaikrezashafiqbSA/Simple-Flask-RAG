@@ -94,137 +94,158 @@ travel_package_inner_prompt = """
         - A detailed summary (at least 100 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner)
         - Activities should be referenced from the Available Inventory, or recommend alternatives based on your knowledge.
         - There should not be repeat activities in the itinerary.
-        - For EACH activity in the itinerary , provide a vivid, persuasive description (at least 100 words).
-        - IMPORTANT: ensure that there is at least 1 foods and places activities for each day and time slot.
-        - IMPORTANT: ensure that there are morning, afternoon, evening activities for each day.
+        - IMPORTANT: THERE MUST BE as much days as required by the user.
+        - For EACH time slot (morning, afternoon, evening), include at least one food activity under "activities".
         - Include pricing and availability for each activity (use "NA" if not in inventory but provide estimations if you are able to for price).
-        - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory.
-        - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. else just put a placeholder image.
-        - the activities array should have at least 3 activities per day. and each day should have a morning, afternoon, and evening activity.
+        - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory if available.
+        - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. Else just put a placeholder image.
+        - Limit tags to a maximum of 2 per time slot.
+        - IMPORTANT: There must be at least 1 food activity and 1 places activity for each day and time slot.
 
-        Follow this example format for the itinerary section:
+
+     Follow this example format for the itinerary section:
         '''
-        obj1
-        "day": "1",
-        "time": "morning",
-        "title": "Adventure and Relaxation",
-        "description": "Welcome to Aceh, Indonesia!... (Detailed 100+ word vivid walkthrough of key highlights of the day)",
-        "city": "Lampuuk Beach",
-        "cover": "Lampuuk.jpg",
-        "tags": ["adventure"],
-        "activity": [
-        "title": "Lampuuk Beach Restaurant", "description": "...(Detailed 100+ word vivid description of the food activity)", "Vendor ID": "x1","Activity ID":"y1" "price": "$50", "cover": "/country/destination/x1/y1.jpg"
-        ]
-        ,
-        obj2
-        "day": "2",
-        "time": "afternoon",
-        "title": "Cultural Exploration",
-        "description": "On the 2nd day of your trip for the afternoon... (Detailed 100+ word vivid walkthrough of key highlights of the day)",
-        "city": "Aceh outskirts",
-        "cover": "Aceh.jpg",
-        "tags": ["foodie", "exciting", "magical"],
-        "activity": [
-        "title": "...", "description": "...", "Vendor ID": "x2","Activity ID":"y2" "price": "$32", "cover": "/country/destination/x2/y2.jpg"
-        ]
-        ,
-        objn
-        "day": "n",
-        "time": "evening",
-        "title": "Cultural Exploration",
-        "description": "On the N'th day of your trip for the afternoon... (Detailed 100+ word vivid walkthrough of key highlights of the day)",
-        "city": "Aceh outskirts",
-        "cover": "Aceh.jpg",
-        "tags": ["foodie", "exciting", "magical"],
-        "activity": [
-        "title": "...", "description": "...", "Vendor ID": "x5","Activity ID":"y5" "price": "$32", "cover": "/country/destination/x5/y5.jpg"
-        ]
+        {
+                "summary": "A captivating summary of the entire itinerary (100+ words)",
+                "pricing": { "total_cost": "$500" },  # Estimated total cost
+                "country": "Malaysia",
+                "cover": "/malaysia/penang/cover.jpg",
+                "itinerary": [
+                {
+                        "day": 1,
+                        "title": "Morning Exploration in George Town",
+                        "description": "Start your day in the heart of Penang's capital...",
+                        "time": "morning",
+                        "city": "George Town",
+                        "cover": "/malaysia/penang/georgetown_morning.jpg",
+                        "tags": ["cultural", "historical"],
+                        "foods": [
+                        {"name": "Breakfast at Toh Soon Cafe", 
+                        "description": "Enjoy a local breakfast of charcoal-toasted bread...",
+                        "cover": "/malaysia/penang/tohsooncafe.jpg",
+                        "Vendor ID": X1,
+                        "Activity ID": Y1},
+                        {"name": "Ais Kacang at Penang Road Famous Teochew Chendul", 
+                        "description": "Cool down with a refreshing Ais Kacang...",
+                        "cover": "/malaysia/penang/chendul.jpg",
+                        "Vendor ID": X2,
+                        "Activity ID": Y2},
+                        ],
+                        "places": [
+                        {"name": "Street Art Tour", 
+                        "description": "Explore the vibrant street art scene of George Town...",
+                        "cover": "/malaysia/penang/streetart.jpg",
+                        "Vendor ID": X3,
+                        "Activity ID": Y3},
+                        {"name": "Cheong Fatt Tze Mansion (The Blue Mansion)", 
+                        "description": "Visit this stunning 19th-century mansion...",
+                        "cover": "/malaysia/penang/bluemansion.jpg",
+                        "Vendor ID": X4,
+                        "Activity ID": Y4},
+                        ]
+                },
+                {
+                        "day": 1,
+                        "title": "Afternoon Culinary Delights in George Town",
+                        "description": "In the afternoon, continue your culinary journey...", 
+                        "time": "afternoon",  // ... (and so on for afternoon and evening)
+                },
+                {
+                        "day": 1,
+                        "title": "Evening at Batu Ferringhi",
+                        "description": "As the sun sets, head to Batu Ferringhi...",
+                        "time": "evening",  // ... (and so on for other days)
+                }
+                // ... (more day objects)
+                ]
+        } 
         '''
 
         ***pricing***
-        * Calculate the total package cost for total pax, referencing the Available Inventory else sum from the constituent activities and estimate from your knowledge.
+        * Calculate the total package cost for total pax, referencing the Available Inventory else estimate from your knowledge.
 """
 
+travel_package_inner_prompt1 = """
+        ****OUTPUT****
+        IMPORTANT NOTE: The itinerary must strictly adhere to the following structure:
 
-# travel_package_inner_prompt = """
-#         ****OUTPUT****
-#         IMPORTANT NOTE: The itinerary must strictly adhere to the following structure:
-
-#         ***summary***
-#         Write an engaging one-paragraph summary containing AT LEAST 100 words to recommend the travel itinerary.
-#         Open with a captivating sentence highlighting how the itinerary aligns with the traveler's interests (based on tags and the itinerary generated below).
+        ***summary***
+        Write an engaging one-paragraph summary containing AT LEAST 100 words to recommend the travel itinerary.
+        Open with a captivating sentence highlighting how the itinerary aligns with the traveler's interests (based on tags and the itinerary generated below).
+        Expand on each tag, briefly describing what the destination offers related to each tag, using persuasive language.
         
-#         ***cover***
-#         "cover": field that is placeholder for the image file to be used as a cover for this entire itinerary. Example: "cover": "/malaysia/malacca/activity/tours/1.jpg"
+        ***cover***
+        "cover": field that is placeholder for the image file to be used as a cover for this entire itinerary. Example: "cover": "/malaysia/malacca/activity/tours/1.jpg"
 
-#         ***itinerary***
-#         For EACH day, provide:
-#         - A detailed summary (at least 100 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner)
-#         - Activities should be referenced from the Available Inventory, or recommend alternatives based on your knowledge.
-#         - There should not be repeat activities in the itinerary.
-#         - For EACH activity in the itinerary , provide a vivid, persuasive description (at least 100 words).
-#         - IMPORTANT: ensure that there is at least 1 foods and places activities for each day and time slot.
-#         - IMPORTANT: ensure that there are morning, afternoon, evening activities for each day.
-#         - Include pricing and availability for each activity (use "NA" if not in inventory but provide estimations if you are able to for price).
-#         - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory.
-#         - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. else just put a placeholder url.
-#         - the activities array should have at least 3 activities per day. and each day should have a morning, afternoon, and evening activity.
+        ***itinerary***
+        For EACH day, provide:
+        - A detailed summary (at least 100 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner)
+        - Activities should be referenced from the Available Inventory, or recommend alternatives based on your knowledge.
+        - There should not be repeat activities in the itinerary.
+        - IMPORTANT: THERE MUST BE as much days as required by the user.
+        - For EACH time slot (morning, afternoon, evening), include at least one food activity under "activities".
+        - Include pricing and availability for each activity (use "NA" if not in inventory but provide estimations if you are able to for price).
+        - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory if available.
+        - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. Else just put a placeholder image.
+        - Limit tags to a maximum of 2 per time slot.
+        - IMPORTANT: There must be at least 1 food activity and 1 places activity for each day and time slot.
 
-#         ***pricing***
-#         * Calculate the total package cost for total pax, referencing the Available Inventory else sum from the constituent activities and estimate from your knowledge.
-# """
+     Follow this example format for the itinerary section:
+        '''
+        {
+                "summary": "A captivating summary of the entire itinerary (100+ words)",
+                "pricing": { "total_cost": "$500" },  # Estimated total cost
+                "country": "Malaysia",
+                "cover": "/malaysia/penang/cover.jpg",
+                "itinerary": [
+                {
+                        "day": 1,
+                        "title": "Morning Exploration in George Town",
+                        "description": "Start your day in the heart of Penang's capital...",
+                        "time": "morning",
+                        "city": "George Town",
+                        "cover": "/malaysia/penang/georgetown_morning.jpg",
+                        "tags": ["cultural", "historical"],
+                        "activities": [
+                        {"name": "Breakfast at Toh Soon Cafe", 
+                        "description": "Enjoy a local breakfast of charcoal-toasted bread...",
+                        "cover": "/malaysia/penang/tohsooncafe.jpg",
+                        "Vendor ID": X1,
+                        "Activity ID": Y1},
+                        {"name": "Ais Kacang at Penang Road Famous Teochew Chendul", 
+                        "description": "Cool down with a refreshing Ais Kacang...",
+                        "cover": "/malaysia/penang/chendul.jpg",
+                        "Vendor ID": X2,
+                        "Activity ID": Y2},
+                        {"name": "Street Art Tour", 
+                        "description": "Explore the vibrant street art scene of George Town...",
+                        "cover": "/malaysia/penang/streetart.jpg",
+                        "Vendor ID": X3,
+                        "Activity ID": Y3},
+                        {"name": "Cheong Fatt Tze Mansion (The Blue Mansion)", 
+                        "description": "Visit this stunning 19th-century mansion...",
+                        "cover": "/malaysia/penang/bluemansion.jpg",
+                        "Vendor ID": X4,
+                        "Activity ID": Y4}
+                        ],
+                },
+                {
+                        "day": 1,
+                        "title": "Afternoon Culinary Delights in George Town",
+                        "description": "In the afternoon, continue your culinary journey...", 
+                        "time": "afternoon",  // ... (and so on for afternoon and evening)
+                },
+                {
+                        "day": 1,
+                        "title": "Evening at Batu Ferringhi",
+                        "description": "As the sun sets, head to Batu Ferringhi...",
+                        "time": "evening",  // ... (and so on for other days)
+                }
+                // ... (more day objects)
+                ]
+        } 
+        '''
 
-# =============================================================================
-# old travel agent
-# =============================================================================
-
-# travel_package_inner_prompt = """
-#         ****OUTPUT****
-#         IMPORTANT NOTE: The itinerary must strictly adhere to the following structure:
-
-#         ***title***
-#         "title": "Travel Itinerary for Aceh, Indonesia"
-
-#         ***cover***
-#         "cover": "aceh.jpg"
-
-#         ***summary***
-#         Write an engaging one-paragraph summary containing AT LEAST 200 words to recommend the travel itinerary.
-#         Open with a captivating sentence highlighting how the itinerary aligns with the traveler's interests (based on tags and the itinerary generated below).
-#         Expand on each tag, briefly describing what the destination offers related to each tag, using persuasive language.
-
-#         ***itinerary***
-#         For EACH day, provide:
-#         - A detailed summary (at least 100 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner) 
-#         - Activities should be referenced from the Available Inventory, or recommend specific alternatives (with Vendor ID: address, and Activity ID: title of activity) based on your knowledge.
-#         - For EACH activity, provide a vivid, persuasive description (at least 200 words).
-#         - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory else use your own knowledge and provide a name and address.
-#         - Include a "cover" for each activity. Example: "cover": "x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively.
-#         - 
-#         - Include pricing and availability for each activity (estimate based on your own knowledge if not in inventory).
-
-#         Follow this FORMAT for the itinerary section:
-#         '''
-        
-#         "day": "1",
-#         "title": "Adventure and Relaxation",
-#         "description": "Welcome to Aceh, Indonesia!... (Detailed 200+ word specific, vivid walkthrough of key highlights of the day)"
-#         "activities": [
-#             "time": "morning", "title": "Lampuuk Beach", "description": "...(Detailed 200+ word accurate walkthrough of the activity)", "Vendor ID": "x1","Activity ID":"y1" "price": "$12", "cover": "x1/y1.jpg"
-#             "time": "afternoon", "title": "...", "description": "...", "price": "...", "Vendor ID": "x4","Activity ID":"y4" "price": "$32", "cover": "x4/y4.jpg"
-#             "time": "evening", "title": "...", "description": "...", "price": "...", "Vendor ID": "x7","Activity ID":"y7" "price": "$3", "cover": "x7/y7.jpg"
-#             ]
-#         ,
-#         "day": "n",
-#         "title": "Cultural Exploration",
-#         "description": "On the nth day of your trip... (Detailed 200+ word specific, vivid walkthrough of key highlights of the day)"
-#         "activities": [
-#             "time": "morning", "title":"Alue Naga Beach","description": "...(Detailed 200+ word accurate walkthrough of the activity)", "Vendor ID": "x2","Activity ID":"y2" "price": "$50", "cover": "x2/y2.jpg"
-#             "time": "afternoon", "title": "...", "description": "...", "price": "...", "Vendor ID": "x3","Activity ID":"x3" "price": "$50", "cover": "x3/y3.jpg"
-#             "time": "evening", "title": "...", "description": "...", "price": "...", "Vendor ID": "x8","Activity ID":"y8" "price": "$213", "cover": "x8/y8.jpg"
-#             ]
-#         '''
-
-#         ***pricing***
-#         * Calculate the total package cost, referencing the Available Inventory. If pricing isn't available, use your own knowledge to estimate
-#         'pricing': 'total_cost': MYR'xxx'"""
+        ***pricing***
+        * Calculate the total package cost for total pax, referencing the Available Inventory else estimate from your knowledge.
+"""

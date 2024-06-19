@@ -1,11 +1,12 @@
 import json
+import re
 import datetime
 from flask import Flask, request, jsonify, Response
 import jwt
 from flask_cors import CORS
 
 from RAG.traveller import traveller
-
+from responses.static import static_response
 
 app = Flask(__name__)
 CORS(app)  
@@ -13,6 +14,13 @@ CORS(app)
 
 
 rag = traveller()
+
+def fix_json(text):
+    # Regex pattern to find missing commas after activity objects
+    pattern = r"(\}\s*){"  
+    # Replace missing commas with comma and space
+    corrected_text = re.sub(pattern, "}, ", text)
+    return corrected_text
 
 def generate_token(user_id):
     secret_key = "314159"  
@@ -57,8 +65,8 @@ def generate_package_from_model():
         itinerary_payload = rag.generate_travel_itinerary(request.json)
         # print(itinerary_payload)
         try:
-            print(itinerary_payload["response"].text)
-            output = json.loads(itinerary_payload["response"].text)
+            corrected_json_text  = fix_json(itinerary_payload["response"].text)
+            output = json.loads(corrected_json_text)
             return output
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -67,92 +75,6 @@ def generate_package_from_model():
         return "This endpoint only accepts POST requests", 405  # Method Not Allowed
 
 
-        # print(f"Token count OUTPUT: {total_output_tokens.total_tokens} -- OUTPUT COST: ${total_output_tokens.total_tokens * (21/1e6)}")
-        # # print(response_travel_package.text)               
-        # t1 = time.time()
-        # self.update_google_sheet(str(message), response_travel_package.text)
-        # t2 = time.time()
-        # print(f"Time taken to update Google Sheet: {t2-t1}")
-        # return {"prompt": travel_package_prompt, "response": response_travel_package, "total_input_tokens": total_input_tokens, "total_output_tokens": total_output_tokens}
-    
-@app.route('/api/3', methods=['POST'])
-def generate_package_from_model_stream():
-    if request.method == 'POST':
-        bearer_token = request.headers.get('Authorization')
-        print(bearer_token)
-        if not bearer_token:
-            return "Unauthorized", 401
-
-        token = bearer_token.split()[1]  # Extract the actual token
-        print(token)
-        if not validate_token(token):
-            return "Invalid token", 401
-        print(request.json) 
-        """
-        Example:
-        request.json = {"destination":"penang",
-                        "dates":"August",
-                        "duration":"2 days",
-                        "number_of_pax":"2",
-                        "filter":"foodie, attractions, magical",
-                        "budget":"$2000",
-                        "prompt":""}
-        """
-        # try:
-        try:
-            stream_generator = rag.generate_travel_itinerary(request.json, stream=True)
-            return Response(stream_generator(), content_type='text/plain')
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return f"An error occurred while generating the travel itinerary: {e}", 500
-        # print(itinerary_payload)
-        try:
-            print(itinerary_payload["response"].text)
-            output = json.loads(itinerary_payload["response"].text)
-            return output
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return f"An error \n{e}\n occurred while generating the travel itinerary", 500  # Internal Server Error
-    else:
-        return "This endpoint only accepts POST requests", 405  # Method Not Allowed
-
-
-
-@app.route('/api/2', methods=['POST'])
-def generate_package_from_model_duo():
-    if request.method == 'POST':
-        bearer_token = request.headers.get('Authorization')
-        print(bearer_token)
-        if not bearer_token:
-            return "Unauthorized", 401
-
-        token = bearer_token.split()[1]  # Extract the actual token
-        print(token)
-        if not validate_token(token):
-            return "Invalid token", 401
-        print(request.json) 
-        """
-        Example:
-        request.json = {"destination":"penang",
-                        "dates":"August",
-                        "duration":"2 days",
-                        "number_of_pax":"2",
-                        "filter":"foodie, attractions, magical",
-                        "budget":"$2000",
-                        "prompt":""}
-        """
-        # try:
-        itinerary_payload = rag.generate_travel_itinerary(request.json, duo=True)
-        # print(itinerary_payload)
-        try:
-            print(itinerary_payload["response"].text)
-            output = json.loads(itinerary_payload["response"].text)
-            return output
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return f"An error \n{e}\n occurred while generating the travel itinerary", 500  # Internal Server Error
-    else:
-        return "This endpoint only accepts POST requests", 405  # Method Not Allowed
 @app.route('/api/0', methods=['POST'])
 def generate_package_from_model_pure_LLM():
     if request.method == 'POST':
@@ -190,7 +112,7 @@ def generate_package_from_model_pure_LLM():
         return "This endpoint only accepts POST requests", 405  # Method Not Allowed
 
 
-@app.route('/api_mock', methods=['POST'])
+@app.route('/api/mock', methods=['POST'])
 def generate_package():
     if request.method == 'POST':
         bearer_token = request.headers.get('Authorization')
@@ -213,37 +135,10 @@ def generate_package():
                         "budget":"$2000",
                         "prompt":""}
         """
-        raw_response = {'summary': "Escape to the enchanting island of Penang, a foodie's paradise with a touch of magic and a wealth of attractions! Immerse yourselves in Penang's vibrant culinary scene, tantalizing your taste buds with diverse flavors. Explore captivating attractions, from historical landmarks to modern wonders. Experience the island's magical aura at enchanting museums, where illusions and wonder await.",
-                'itinerary': {'day1_summary': "Welcome to Penang, Malaysia! Kickstart your adventure with a hearty breakfast before immersing yourselves in the magical world of Ghost Museum. After lunch, ascend to new heights at The Top Penang, marveling at breathtaking views. Indulge in a delightful dinner at De' 8000 Mini Golf Cafe, where you can enjoy a round of mini-golf.",
-                'day1_itinerary': [{'title': 'Ghost Museum',
-                    'text': "Step into a realm of spine-tingling encounters at Ghost Museum, Penang's spooktacular attraction! Explore three floors of meticulously crafted exhibits, each featuring hauntingly realistic scenes and spooky characters. Get ready for some fun photo opportunities with free costumes and props, and let the knowledgeable guides lead you through the history of ghosts from around the world.",
-                    'inventory': 'available',
-                    'price': 36},
-                {'title': 'The Top Penang',
-                    'text': "Prepare for breathtaking panoramic views of Penang Island from The Top Penang! Ascend to the observation deck for a bird's-eye perspective of the island's cityscape, rolling hills, and sparkling coastline. Take a thrilling stroll on the Rainbow Skywalk, a glass-bottomed platform that will test your courage and reward you with unforgettable memories. Don't miss the other exciting attractions within The Top, including the Jurassic Research Centre and the 4D Adventure.",
-                    'inventory': 'available',
-                    'price': 132},
-                {'title': "De' 8000 Mini Golf Cafe",
-                    'text': "Unwind and enjoy a delightful dining experience at De' 8000 Mini Golf Cafe. Putt your way through their 18-hole mini golf course, challenging your companion to a friendly competition. Afterward, indulge in a delectable spread of halal food and refreshing beverages. From local favorites to international delights, their menu caters to diverse palates. ",
-                    'inventory': 'available',
-                    'price': 'unavailable'}],
-                'day2_summary': "On your second day in Penang, start with a delightful breakfast before embarking on a journey into a world of illusions at Magic World Penang. Enjoy lunch at a local eatery, savoring Penang's culinary delights. Afterward, retreat to your comfortable accommodation at Raia Inn Penang, where you can relax and rejuvenate before bidding farewell to this captivating island.",
-                'day2_itinerary': [{'title': 'Magic World Penang',
-                    'text': 'Get ready for a day filled with optical illusions and interactive experiences at Magic World Penang. Step into a world of wonder as you explore their various zones, including the 3D Upside Down Museum, 3D Glow Museum, and the Jurassic Alive Interactive Dinosaur Museum. Capture mind-bending photos and let your imagination run wild in this whimsical attraction.',
-                    'inventory': 'available',
-                    'price': 'unavailable'},
-                {'title': 'Local Eatery for Lunch',
-                    'text': "Penang is renowned for its diverse culinary scene, so for lunch, embark on a flavorful adventure at one of the island's many local eateries. From hawker stalls to charming cafes, you'll find an array of options serving up mouthwatering dishes. Indulge in Penang's signature dishes such as Char Kway Teow, Assam Laksa, or Nasi Kandar, each bursting with unique flavors and aromas.",
-                    'inventory': 'unavailable',
-                    'price': 'unavailable'},
-                {'title': 'Raia Inn Penang',
-                    'text': 'After a day of exploration, retreat to the comfort of Raia Inn Penang, your home away from home. Unwind in your spacious room, perfect for families or couples seeking a relaxing stay. Take a refreshing dip in the new splash pool or simply unwind and share highlights of your Penang adventure.',
-                    'inventory': 'available',
-                    'price': 316}],
-                'pricing': {'total_cost': 'unavailable',
-                'per_day_cost': 'unavailable',
-                'per_activity_cost': 'unavailable'}}}
+        raw_response = static_response
         return raw_response
+
+
 
 if __name__ == '__main__':
     jwt_token = generate_token(1)

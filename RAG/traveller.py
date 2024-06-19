@@ -18,8 +18,6 @@ CREDENTIALS_FILE = 'smart-platform.json'
 SHEET_NAME = "Master Database" 
 WORKSHEET_NAME = "inventory_processed"
 
-TARGET_DESTINATIONS = ["johor", "kedah", "kuala lumpur", "malacca", "negeri sembilan", "pahang", "penang", "perak", "perlis", "sabah", "sarawak", "selangor", "terengganu"]
-
 
 class EmptyResponse:
     def __init__(self, text):
@@ -30,22 +28,11 @@ class traveller:
     def __init__(self,
                  generation_config = None,
                  block_threshold="BLOCK_NONE", ):
-        # To be generalised for other LLMs in the future
-        # self.co = cohere.Client(COHERE_API_KEY)
         self.GEMINI_API_KEY1 = GEMINI_API_KEY
         self.GEMINI_API_KEY = GEMINI_API_KEY1
-        # self.co = cohere.Client(COHERE_API_KEY)
-        self.model_name = "gemini-1.5-pro-latest"
+        self.model_name = "gemini-1.5-flash" 
+        # self.model_name = "gemini-1.5-pro-latest"
         self.embed_model = 'models/embedding-001'
-
-        """
-        API_KEY: str
-            The API key for the Google Generative AI API
-            BLOCK_NONE = Always show regardless of probability of unsafe content
-            BLOCK_ONLY_HIGH = Block when high probability of unsafe content
-            BLOCK_MEDIUM_AND_ABOVE = Block when medium or high probability of unsafe content
-            BLOCK_LOW_AND_ABOVE = Block when low, medium or high probability of unsafe content
-        """
         if generation_config is None:
             # self.generation_config =glm.GenerationConfig(response_mime_type="application/json",
             #                                              response_schema="application/json",
@@ -77,8 +64,6 @@ class traveller:
             "threshold": block_threshold
             },
         ]
-
-
 
     def build_model(self, model_name, api_key):
         genai.configure(api_key = api_key)
@@ -134,7 +119,6 @@ class traveller:
 
         
         return filtered_df
-
     
     def prompt_intent_classifier(self, message):
         """
@@ -192,10 +176,7 @@ class traveller:
                                                     columns_to_embed = columns_to_embed,
                                                     column_title=column_title,
                                                     top_N = 5)
-            # if len(top_inventories) == 0 and (message["destination"] not in TARGET_DESTINATIONS):
-                
-            #     empty_response = EmptyResponse(json.dumps(NULL_RESPONSE))
-            #     return  {"prompt": message, "response": empty_response, "total_input_tokens": 0, "total_output_tokens": 0}
+
             print(top_inventories)
             top_inventories_json = top_inventories.to_json(orient='records')
         else:
@@ -208,7 +189,13 @@ class traveller:
             itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM)
             return itinerary_payload
 
-
+    def fix_json(self,text):
+        # Regex pattern to find missing commas after activity objects
+        pattern = r"(\}\s*){"  
+        # Replace missing commas with comma and space
+        corrected_text = re.sub(pattern, "}, ", text)
+        return corrected_text
+    
     def generate_travel_package_foundational(self, 
                                              message, 
                                              top_inventories = None,
@@ -250,7 +237,7 @@ class traveller:
                                 """
             # use LLM to extract out destination from the prompt
 
-        travel_package_prompt = f"""You are a soulful and poetic travel agent creating a comprehensive itinerary given client requirements and available inventory.
+        travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given client requirements and available inventory.
 
         ****INPUTS****
         ***Client Requirements:***
@@ -262,8 +249,6 @@ class traveller:
         {travel_package_inner_prompt_}
         Follow the JSON schema strictly (from the content ouline above) fill in all required fields:
         <JSONSchema>{json.dumps(travel_jsonSchema_)}</JSONSchema>
-
-        Finally, use at least 100000 tokens to generate the itinerary.
         """
         model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY)
         # measure token count
@@ -271,20 +256,25 @@ class traveller:
         print(f"Token count INPUT: {total_input_tokens.total_tokens} -- INPUT COST: ${total_input_tokens.total_tokens * (7/1e6)}")
         response_travel_package = self.prompt(model, travel_package_prompt, stream = stream)
 
-        total_output_tokens = self.count_tokens(model, response_travel_package.text)
+    
         if stream:
             def generate(responses):
-                for chunk in responses:
-                    yield chunk.text
-                    print(chunk.text)  # Optionally print each chunk for debugging
+                    buffer = ""
+                    for chunk in responses:
+                        buffer += chunk.text
+                        yield buffer
+                        print(chunk.text)
 
-            return generate
+            return generate(response_travel_package)
         else:
+            corrected_json_text = self.fix_json(response_travel_package.text)
+
+            total_output_tokens = self.count_tokens(model, response_travel_package.text)
             print(f"Token count OUTPUT: {total_output_tokens.total_tokens} -- OUTPUT COST: ${total_output_tokens.total_tokens * (21/1e6)}")
-            # print(response_travel_package.text)               
+            print(response_travel_package.text)               
             # do update_google_sheet without wating for response, and just return payload
             t1 = time.time()
-            self.update_google_sheet(str(message), response_travel_package.text)
+            self.update_google_sheet(str(message), corrected_json_text)
             t2 = time.time()
             print(f"Time taken to update Google Sheet: {t2-t1}")
             return {"prompt": travel_package_prompt, "response": response_travel_package, "total_input_tokens": total_input_tokens, "total_output_tokens": total_output_tokens}
