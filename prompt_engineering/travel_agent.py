@@ -102,7 +102,7 @@ travel_package_inner_prompt = """
         - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. else just put a placeholder image.
         - the activities array should have at least 3 activities per day. and each day should have a morning, afternoon, and evening activity.
 
-        Follow this FORMAT for the itinerary section:
+        Follow this example format for the itinerary section:
         '''
         obj1
         "day": "1",

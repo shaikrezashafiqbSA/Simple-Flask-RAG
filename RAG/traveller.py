@@ -91,8 +91,8 @@ class traveller:
     def count_tokens(self, model, text):
         return model.count_tokens(text)
     
-    def prompt(self, model, query):
-        response = model.generate_content(query)
+    def prompt(self, model, query, stream=False):
+        response = model.generate_content(query, stream=stream)
         # print(response.text)
         return response
 
@@ -109,7 +109,8 @@ class traveller:
     def update_google_sheet(self, prompt, itinerary):
         gspread_handler = GspreadHandler(credentials_filepath=CREDENTIALS_FILE)
         """Updates the Google Sheet with the extracted text."""
-        data = [{"prompt": prompt, "itinerary": itinerary}]
+        timestamp = time.time()
+        data = [{"timestamp":timestamp, "prompt": prompt, "itinerary": itinerary}]
         df = pd.DataFrame(data)
         print("Updating Google Sheet...with:\n", df)
         # replace with the correct sheet name 
@@ -157,7 +158,7 @@ class traveller:
         output = json.loads(response.text)
         return output
 
-    def generate_travel_itinerary(self, message, duo=False, pure_LLM=False):
+    def generate_travel_itinerary(self, message, duo=False, pure_LLM=False, stream=False):
         # Firstly check if prompt or other fields exists in message
         if "prompt" in message:
             initial_prompt = message["prompt"]
@@ -201,15 +202,19 @@ class traveller:
             top_inventories_json = None
         print("Generating itinerary...")
         # prompt the user to generate the travel package
-        itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM)
-        return itinerary_payload
+        if stream:
+            return self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM, stream=stream)
+        else:
+            itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM)
+            return itinerary_payload
 
 
     def generate_travel_package_foundational(self, 
                                              message, 
                                              top_inventories = None,
                                              duo=False,
-                                             pure_LLM=False):
+                                             pure_LLM=False, 
+                                             stream=False):
         """
         This function will consume message with keys:
         * destination
@@ -264,20 +269,26 @@ class traveller:
         # measure token count
         total_input_tokens = self.count_tokens(model, travel_package_prompt)
         print(f"Token count INPUT: {total_input_tokens.total_tokens} -- INPUT COST: ${total_input_tokens.total_tokens * (7/1e6)}")
-        response_travel_package = self.prompt(model, travel_package_prompt)    
+        response_travel_package = self.prompt(model, travel_package_prompt, stream = stream)
+
         total_output_tokens = self.count_tokens(model, response_travel_package.text)
-        print(f"Token count OUTPUT: {total_output_tokens.total_tokens} -- OUTPUT COST: ${total_output_tokens.total_tokens * (21/1e6)}")
-        # print(response_travel_package.text)               
-        # do update_google_sheet without wating for response, and just return payload
-        t1 = time.time()
-        self.update_google_sheet(str(message), response_travel_package.text)
-        t2 = time.time()
-        print(f"Time taken to update Google Sheet: {t2-t1}")
-        return {"prompt": travel_package_prompt, "response": response_travel_package, "total_input_tokens": total_input_tokens, "total_output_tokens": total_output_tokens}
-    
+        if stream:
+            def generate(responses):
+                for chunk in responses:
+                    yield chunk.text
+                    print(chunk.text)  # Optionally print each chunk for debugging
 
-
-
+            return generate
+        else:
+            print(f"Token count OUTPUT: {total_output_tokens.total_tokens} -- OUTPUT COST: ${total_output_tokens.total_tokens * (21/1e6)}")
+            # print(response_travel_package.text)               
+            # do update_google_sheet without wating for response, and just return payload
+            t1 = time.time()
+            self.update_google_sheet(str(message), response_travel_package.text)
+            t2 = time.time()
+            print(f"Time taken to update Google Sheet: {t2-t1}")
+            return {"prompt": travel_package_prompt, "response": response_travel_package, "total_input_tokens": total_input_tokens, "total_output_tokens": total_output_tokens}
+        
 
 
 
