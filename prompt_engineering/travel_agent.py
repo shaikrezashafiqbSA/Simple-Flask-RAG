@@ -83,7 +83,6 @@ travel_package_inner_prompt_2 = """
                         "time": "morning",
                         "city": "George Town",
                         "cover": "/malaysia/penang/georgetown_morning.jpg",
-                        "tags": ["cultural", "historical"],
                         "foods": [
                         {"name": "Breakfast at Toh Soon Cafe", 
                         "description": "Enjoy a local breakfast of charcoal-toasted bread...",
@@ -107,7 +106,8 @@ travel_package_inner_prompt_2 = """
                         "cover": "/malaysia/penang/bluemansion.jpg",
                         "Vendor ID": X4,
                         "Activity ID": Y4},
-                        ]
+                        ],
+                        "tags": ["cultural", "historical"]
                 },
                 {
                         "day": 1,

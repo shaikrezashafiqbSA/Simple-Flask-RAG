@@ -86,12 +86,6 @@ travel_jsonSchema_2 = {
     "type": "object",
     "properties": {
         "summary": {"type": "string"}, 
-        "pricing": {
-            "type": "object",
-            "properties": {
-                "total_cost": {"type": "string"}
-            }
-        },
         "country": {"type": "string"},
         "cover": {"type": "string"},
         "itinerary": {
@@ -105,11 +99,6 @@ travel_jsonSchema_2 = {
                     "time": {"type": "string"},        # Moved "time" here
                     "city": {"type": "string"},        # Added "city"
                     "cover": {"type": "string"},       # Moved "cover" here
-                    "tags": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "maxItems": 2                   # Limit to 2 items
-                    },
                     "foods": {
                         "type": "array",
                         "items": {
@@ -139,12 +128,23 @@ travel_jsonSchema_2 = {
                             "required": ["name", "description", "cover"]
                         },
                         "maxItems": 2                   # Limit to 2 items
-                    }
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "maxItems": 2                   # Limit to 2 items
+                    },
                 },
-                "required": ["day", "title", "description", "time", "city", "cover", "tags", "foods", "places"] 
+                "required": ["day", "title", "description", "time", "city", "cover", "foods", "places","tags"] 
             }
-        }
+        },
+        "pricing": {
+            "type": "object",
+            "properties": {
+                "total_cost": {"type": "string"}
+            }
+        },
     },
-    "required": ["summary", "pricing", "country", "cover", "itinerary"] # Added "prompt"
+    "required": ["summary", "country", "cover", "itinerary","pricing"] # Added "prompt"
 }
 
