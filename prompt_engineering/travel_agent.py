@@ -74,7 +74,7 @@ travel_package_inner_prompt_2 = """
                 "summary": "A captivating summary of the entire itinerary (100+ words)",
                 "pricing": { "total_cost": "$500" },  # Estimated total cost
                 "country": "Malaysia",
-                "cover": "/malaysia/penang/cover.jpg",
+                "main_cover": "/malaysia/penang/cover.jpg",
                 "itinerary": [
                 {
                         "day": 1,

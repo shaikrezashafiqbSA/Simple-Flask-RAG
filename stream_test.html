@@ -14,8 +14,19 @@
                 placeholder="i want to go to penang in august for 3 days with 2 people. i want to experience foodie, attractions, magical. my budget is $2000."></textarea>
             <button onclick="generateItinerary()">Generate Itinerary</button>
         </div>
-        <div id="summary-container"> <h2>Trip Summary</h2>
+        <div id="summary-container"> 
+            <h2>Trip Summary</h2>
             <div id="summary"></div>
+        </div>
+        
+        <div id="country-container">
+            <h2>Country:</h2>
+            <div id="country"></div>
+        </div>
+
+        <div id="cover-container">
+            <h2>Cover Image:</h2>
+            <div id="main_cover"></div>
         </div>
 
         <div id="itinerary-area">
@@ -29,6 +40,8 @@
         const promptInput = document.getElementById('prompt-input');
         const itineraryArea = document.getElementById('itinerary-area');
         const summaryElement = document.getElementById('summary');
+        const countryElement = document.getElementById('country');
+        const coverElement = document.getElementById('main_cover');
         const pricingElement = document.getElementById('pricing');
         const summaryContainer = document.getElementById('summary-container');
 
@@ -85,32 +98,52 @@
         function displayChunk(chunkJson) {
             if ('summary' in chunkJson) {
                 summaryElement.textContent = chunkJson.summary;
-            } else if ('itinerary' in chunkJson) {
-                const itineraryItem = chunkJson.itinerary; 
-                const dayIndex = itineraryItem.day; 
-                // Create a new day section if needed
-                let dayElement = document.getElementById(`day-${dayIndex}`);
-                if (!dayElement) {
-                    dayElement = document.createElement('div');
-                    dayElement.id = `day-${dayIndex}`;
-                    dayElement.innerHTML = `<h3>Day ${dayIndex}: ${itineraryItem.title}</h3>`;
-                    outputElement.appendChild(dayElement);
-                }
+            }     else if ('main_cover' in chunkJson) {
+                // Update cover image
+                coverElement.innerHTML = `<img src="${chunkJson.main_cover}" alt="Trip Cover" style="max-width: 100%; height: auto;">`;
+            } else if ('country' in chunkJson) {
+                // Update country
+                countryElement.textContent = `Country: ${chunkJson.country}`;
+            }
+            else if ('itinerary' in chunkJson) {
+                const itineraryItem = chunkJson.itinerary; 
+                const dayIndex = itineraryItem.day;
 
-                // Add the description and activities to the day section
-                dayElement.innerHTML += `<p>${itineraryItem.description}</p>`;
-                dayElement.innerHTML += '<div class="activities">';
-                for (const activity of itineraryItem.foods) {
-                    dayElement.innerHTML += `<h4>Foods: ${activity.name}</h4>`;
-                    dayElement.innerHTML += `<p>${activity.description}</p>`;
-                    // Add more details about the activity as needed (price, etc.)
-                }
-                for (const activity of itineraryItem.places) {
-                    dayElement.innerHTML += `<h4>Places: ${activity.name}</h4>`;
-                    dayElement.innerHTML += `<p>${activity.description}</p>`;
-                    // Add more details about the activity as needed (price, etc.)
-                }
-                dayElement.innerHTML += '</div>';
+                // Create a new day section if needed
+                let dayElement = document.getElementById(`day-${dayIndex}`);
+                if (!dayElement) {
+                    dayElement = document.createElement('div');
+                    dayElement.id = `day-${dayIndex}`;
+                    dayElement.innerHTML = `<h3>Day ${dayIndex}: ${itineraryItem.title}</h3>`;
+                    outputElement.appendChild(dayElement);
+                }
+
+                // Add the description, time, and city to the day section
+                dayElement.innerHTML += `<p>${itineraryItem.description}</p>`;
+                dayElement.innerHTML += `<p>Time: ${itineraryItem.time}, City: ${itineraryItem.city}</p>`;
+                if (itineraryItem.cover) {
+                    dayElement.innerHTML += `<img src="${itineraryItem.cover}" alt="Day ${dayIndex} Cover" style="max-width: 100%; height: auto;">`;
+                }
+
+
+                // Add the activities to the day section
+                dayElement.innerHTML += '<div class="activities">';
+                for (const type of ['foods', 'places']) {
+                    if (itineraryItem[type] && itineraryItem[type].length > 0) {
+                        dayElement.innerHTML += `<h4>${type.charAt(0).toUpperCase() + type.slice(1)}:</h4>`; // Capitalize the first letter of the section
+                        for (const activity of itineraryItem[type]) {
+                            dayElement.innerHTML += `<h5>${activity.name}</h5>`;
+                            dayElement.innerHTML += `<p>${activity.description}</p>`;
+                            if ('Vendor ID' in activity && 'Activity ID' in activity) {  // Check if these keys exist
+                                dayElement.innerHTML += `<p>Vendor ID: ${activity['Vendor ID']}, Activity ID: ${activity['Activity ID']}</p>`;
+                            }
+                            if (activity.cover) {
+                                dayElement.innerHTML += `<img src="${activity.cover}" alt="${activity.name} Cover" style="max-width: 100%; height: auto;">`;
+                            }
+                        }
+                    }
+                }
+                dayElement.innerHTML += '</div>';
             } else if ('pricing' in chunkJson) {
                 pricingElement.textContent = `Total Cost: ${chunkJson.pricing.total_cost}`;
             }
