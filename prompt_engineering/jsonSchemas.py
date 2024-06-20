@@ -87,7 +87,7 @@ travel_jsonSchema_2 = {
     "properties": {
         "summary": {"type": "string"}, 
         "country": {"type": "string"},
-        "cover": {"type": "string"},
+        "main_cover": {"type": "string"},
         "itinerary": {
             "type": "array",
             "items": {
@@ -145,6 +145,6 @@ travel_jsonSchema_2 = {
             }
         },
     },
-    "required": ["summary", "country", "cover", "itinerary","pricing"] # Added "prompt"
+    "required": ["summary", "country", "main_cover", "itinerary","pricing"] # Added "prompt"
 }
 

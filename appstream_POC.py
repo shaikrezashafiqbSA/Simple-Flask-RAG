@@ -1,5 +1,7 @@
 import json
 import re
+import time
+import numpy as np
 import datetime
 from flask import Flask, request, jsonify, Response, stream_with_context
 import jwt
@@ -91,14 +93,15 @@ def generate_content():
         response = model.generate_content(query, stream=True)
         buffer = ""
         in_itinerary = False
-
+        t0 = time.time()
         for chunk in response:
             chunk_text = chunk.text
 
             # Append to the buffer
             buffer += chunk_text
-            print(f"chunk_text: \n{chunk_text}\n")
+
             try:
+                print(f"buffer: {buffer}\n")
                 # Try to load the buffer as JSON
                 data = json.loads(buffer)
                 # Clear the buffer if loading was successful
@@ -111,7 +114,13 @@ def generate_content():
                 if 'pricing' in data and not data.get('yield_pricing', False):
                     yield json.dumps({'pricing': data['pricing']}) + "\n"
                     data['yield_pricing'] = True  # Mark pricing as yielded
-                
+
+                # Yield 'country' and 'cover' sections if they exist and haven't been yielded
+                for key in ['country', 'cover']:
+                    if key in data and not data.get(f'yield_{key}', False):
+                        yield json.dumps({key: data[key]}) + "\n"
+                        data[f'yield_{key}'] = True
+                        
                 if 'itinerary' in data: 
                     for item in data['itinerary']:
                         for category in ["foods", "places"]:
@@ -128,14 +137,36 @@ def generate_content():
             except json.JSONDecodeError:
                 # If not valid JSON, try to find complete itinerary items
                 for match in re.finditer(r'({"day":\s*\d+,.+?"tags":\s*\[[^\]]+\]})', buffer, re.DOTALL):
-                    yield json.dumps({'itinerary': json.loads(match.group(1))}) + "\n"
+                    payload = match.group(1)
+                    yield json.dumps({'itinerary': json.loads(payload)}) + "\n"
+                    print(f"!!!!\n\nYielded itinerary item: {payload}\n\n")
                     # Remove the yielded itinerary item from the buffer
                     buffer = buffer.replace(match.group(1), '', 1)
-                    
+
+                # Refined regex for summary
+                summary_match = re.search(r'"summary"\s*:\s*"([^"]*)"', buffer, re.DOTALL)
+                if summary_match:
+                    yield json.dumps({'summary': summary_match.group(1)}) + '\n'
+                    buffer = buffer[summary_match.end():]  # Remove summary from buffer 
+
+                # # Refined regex for country
+                country_match = re.search(r'"country"\s*:\s*"([^"]*)"', buffer, re.DOTALL)
+                if country_match:
+                    yield json.dumps({'country': country_match.group(1)}) + '\n'
+                    print(f"!!!!\n\nCountry match: {country_match.group(1)}\n\n")
+                    buffer = buffer[country_match.end():]
+
+                
+                # Refined regex for cover
+                cover_match = re.search(r'"main_cover"\s*:\s*"([^"]*\.jpg)"', buffer, re.DOTALL)  
+                if cover_match:
+                    yield json.dumps({'main_cover': cover_match.group(1)}) + '\n'
+                    # buffer = buffer[cover_match.end():]  # Remove cover from buffer 
+                    print(f"!!!!\n\nCover match: {cover_match.group(1)}\n\n")
+                    buffer = buffer[cover_match.end():]  # Remove cover from buffer
                 # If not valid JSON and no complete itinerary item found, wait for more data
                 continue
-
-        # Handle remaining buffer at the end of the generation
+        # Handle remaining buffer after the generation loop is complete
         if buffer:
             # Attempt to parse and yield the remaining buffer if it has pricing
             if '"pricing":' in buffer:
@@ -152,7 +183,9 @@ def generate_content():
                         yield json.dumps({'itinerary': json.loads(match)}) + '\n'
                 else: 
                     yield buffer #yield remaining text 
-        print(f"\n\nEND OF RESPONSE\n\n")
+        total_time = np.round(time.time() - t0,2)
+        print(f"\n\nEND OF RESPONSE ({total_time}s)\n\n")
+
 
     return Response(stream_with_context(generate()), mimetype='application/json')
 
