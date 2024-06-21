@@ -91,11 +91,10 @@ class traveller:
         df['Location'] = df['Location'].str.strip().str.title()
         return df
 
-    def update_google_sheet(self, prompt, itinerary):
+    def update_google_sheet(self, timestamp, prompt, itinerary):
         gspread_handler = GspreadHandler(credentials_filepath=CREDENTIALS_FILE)
         """Updates the Google Sheet with the extracted text."""
-        timestamp = time.time()
-        data = [{"timestamp":timestamp, "prompt": prompt, "itinerary": itinerary}]
+        data = [{"timestamp":'"'+str(timestamp)+'"', "prompt": prompt, "itinerary": itinerary}]
         df = pd.DataFrame(data)
         print("Updating Google Sheet...with:\n", df)
         # replace with the correct sheet name 
@@ -216,6 +215,9 @@ class traveller:
         # else use only "prompt"
         # check if message["prompt"] exists: if it does, use it to extract the destination
         # check if "prompt" exists in message dict
+        # timestamp id
+        timestamp_id = time.time_ns()
+
         if version == 1:
             travel_package_inner_prompt_ = travel_package_inner_prompt_1
             travel_jsonSchema_ = travel_jsonSchema_1
@@ -251,31 +253,23 @@ class traveller:
         Follow the JSON schema strictly (from the content ouline above) fill in all required fields:
         <JSONSchema>{json.dumps(travel_jsonSchema_)}</JSONSchema>
         """
-        model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY)
+        self.model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY)
         # measure token count
-        total_input_tokens = self.count_tokens(model, travel_package_prompt)
+        total_input_tokens = self.count_tokens(self.model, travel_package_prompt)
         print(f"Token count INPUT: {total_input_tokens.total_tokens} -- INPUT COST: ${total_input_tokens.total_tokens * (7/1e6)}")
-        response_travel_package = self.prompt(model, travel_package_prompt, stream = stream)
-
-    
         if stream:
-            def generate(responses):
-                    buffer = ""
-                    for chunk in responses:
-                        buffer += chunk.text
-                        yield buffer
-                        print(chunk.text)
-
-            return generate(response_travel_package)
+            # since cant invoke prompt, just return the travel_package_prompt
+            return message, travel_package_prompt
         else:
-            corrected_json_text = self.fix_json(response_travel_package.text)
+            response_travel_package = self.prompt(self.model, travel_package_prompt, stream = stream)
 
-            total_output_tokens = self.count_tokens(model, response_travel_package.text)
+            total_output_tokens = self.count_tokens(self.model, response_travel_package.text)
             print(f"Token count OUTPUT: {total_output_tokens.total_tokens} -- OUTPUT COST: ${total_output_tokens.total_tokens * (21/1e6)}")
             print(response_travel_package.text)               
             # do update_google_sheet without wating for response, and just return payload
             t1 = time.time()
-            self.update_google_sheet(str(message), corrected_json_text)
+            corrected_json_text = self.fix_json(response_travel_package.text)
+            self.update_google_sheet(timestamp_id, str(message), corrected_json_text)
             t2 = time.time()
             print(f"Time taken to update Google Sheet: {t2-t1}")
             return {"prompt": travel_package_prompt, "response": response_travel_package, "total_input_tokens": total_input_tokens, "total_output_tokens": total_output_tokens}

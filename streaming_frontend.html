@@ -15,7 +15,7 @@
             <button onclick="generateItinerary()">Generate Itinerary</button>
         </div>
         <div id="summary-container"> 
-            <h2>Trip Summary</h2>
+            <h2>Trip Summary:</h2>
             <div id="summary"></div>
         </div>
         
@@ -29,9 +29,18 @@
             <div id="main_cover"></div>
         </div>
 
+        <div id="itinerary_id-container">
+            <h2>Itinerary ID:</h2>
+            <div id="itinerary_id"></div>
+        </div>
+
         <div id="itinerary-area">
             <h2>Your Itinerary:</h2>
             <div id="output"></div>
+        </div>
+
+        <div id="pricing-area">
+            <h2>Estimated pricing:</h2>
             <div id="pricing"></div>
         </div>
     </div>
@@ -44,17 +53,23 @@
         const coverElement = document.getElementById('main_cover');
         const pricingElement = document.getElementById('pricing');
         const summaryContainer = document.getElementById('summary-container');
-
+        const itineraryIdElement = document.getElementById('itinerary_id');
+        function getBearerToken() {
+                return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxfQ.MyVR6Tz4dHLLmqWPHWLnyUp9qnX1HyGDr-WRoWe6LXU'; 
+            }
         function generateItinerary() {
             outputElement.innerHTML = ""; // Clear previous output
             summaryElement.textContent = ""; // Clear previous summary
             pricingElement.textContent = ""; // Clear previous pricing
             itineraryArea.style.display = 'block'; // Show itinerary area
             summaryContainer.style.display = 'block'; // Show the summary container initially
-
-            fetch('http://127.0.0.1:5000/generate', {
+            itineraryIdElement.textContent = '';
+             const token = getBearerToken();
+            fetch('http://127.0.0.1:5000/api/3', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ prompt: promptInput.value })
             })
             .then(response => {
@@ -96,12 +111,20 @@
         }
 
         function displayChunk(chunkJson) {
+            // Check if any of the relevant keys are in the chunk
+            if (Object.keys(chunkJson).length === 0) { //if the chunk is empty
+                return; 
+            }
             if ('summary' in chunkJson) {
                 summaryElement.textContent = chunkJson.summary;
             }     else if ('main_cover' in chunkJson) {
                 // Update cover image
                 coverElement.innerHTML = `<img src="${chunkJson.main_cover}" alt="Trip Cover" style="max-width: 100%; height: auto;">`;
-            } else if ('country' in chunkJson) {
+            } else if  ('itinerary_id' in chunkJson) {
+                // Update itinerary ID
+                itineraryIdElement.textContent = `Itinerary ID: ${chunkJson.itinerary_id}`;
+            } 
+            else if ('country' in chunkJson) {
                 // Update country
                 countryElement.textContent = `Country: ${chunkJson.country}`;
             }
