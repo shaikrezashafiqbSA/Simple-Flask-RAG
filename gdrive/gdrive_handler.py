@@ -24,7 +24,37 @@ class GspreadHandler:
         """
         sh = self.gc.open(sheet_name).worksheet(worksheet_name)
         return sh
+    
+    def get_row_by_timestamp(self, sheet_name, worksheet_name, timestamp):
+        """
+        Retrieves a specific row from the Google Sheet based on a given timestamp (in string format).
 
+        Args:
+            sheet_name (str): Name of the Google Sheet.
+            worksheet_name (str): Name of the worksheet within the Google Sheet.
+            timestamp (str): The timestamp value (as a string) to search for.
+
+        Returns:
+            dict or None: The row data as a dictionary if found, otherwise None.
+        """
+        worksheet = self.get_sheet(sheet_name, worksheet_name)
+        df = pd.DataFrame(worksheet.get_all_records())
+        print(df["timestamp"].iloc[-1])
+        test = df["timestamp"].iloc[-1]
+        str_timestamp = f"{str(timestamp)}"
+        print(str_timestamp)
+        print(f"{test} vs {str_timestamp}")
+        print(type(test), type(str_timestamp))
+        if 'timestamp' in df.columns:
+            # Assuming the timestamp column is already in string format
+            # No need for type conversion here.
+            matching_row = df.loc[df['timestamp'].str.lower() == str_timestamp.lower()]
+            print(matching_row)
+            if not matching_row.empty:
+                return matching_row.to_dict(orient='records')[0] # Return as dict
+
+        return None  # Return None if no matching row is found
+    
     def get_cell_value(self, sheet_name, worksheet_name, cell_col_row='A1'):
         """
         Get the value of a cell in a Google Sheet.

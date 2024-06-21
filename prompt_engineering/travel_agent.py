@@ -48,33 +48,42 @@ travel_package_inner_prompt_2 = """
 
         ***summary***
         Write an engaging one-paragraph summary containing AT LEAST 100 words to recommend the travel itinerary.
-        Open with a captivating sentence highlighting how the itinerary aligns with the traveler's interests (based on tags and the itinerary generated below).
+        Open with a captivating sentence highlighting how the itinerary aligns with the customer's interests (based on tags and the itinerary generated below).
         Expand on each tag, briefly describing what the destination offers related to each tag, using persuasive language.
         
-        ***cover***
-        "cover": field that is placeholder for the image file to be used as a cover for this entire itinerary. Example: "cover": "/malaysia/malacca/activity/tours/1.jpg"
+        ***country***
+        "country": identify the country for the itinerary. Example: "country": "Malaysia"
 
+        ***main_cover***
+        "main_cover": field that is placeholder for the image file to be used as a cover for this entire itinerary. Example: "cover": "/malaysia/malacca/activity/tours/1.jpg"
+
+        ***itinerary_id***
+        "itinerary_id": "NAN"  # This field is a placeholder. Produce as is. 
+        
         ***itinerary***
         For EACH day, provide:
         - A detailed summary (at least 100 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner)
-        - Activities should be referenced from the Available Inventory, or recommend alternatives based on your knowledge.
-        - There should not be repeat activities in the itinerary.
+        - Activities should be referenced from the Available Inventory (if matches customer request), ELSE recommend better alternatives based on your knowledge that better matches the customer's request.
         - IMPORTANT: THERE MUST BE as much days as required by the user.
-        - For EACH time slot (morning, afternoon, evening), include at least one food activity under "activities".
-        - Include pricing and availability for each activity (use "NA" if not in inventory but provide estimations if you are able to for price).
-        - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory if available.
+        - IMPORTANT: THERE MUST BE morning, afternoon, and evening activities for each day.
+        - For EACH time slot (morning, afternoon, evening), include at least one food activity.
+        - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory if available else put NAN.
         - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. Else just put a placeholder image.
         - Limit tags to a maximum of 2 per time slot.
         - IMPORTANT: There must be at least 1 food activity and 1 places activity for each day and time slot.
+        - IMPORTANT: There MUST not be repeat activities in the itinerary. There must be no repeat food activities from the same place.
 
+        ***pricing***
+        * Calculate the total package cost for total pax, referencing the prices from the Available Inventory else estimate from your knowledge.
 
-     Follow this example format for the itinerary section:
+     Follow this example format for the payload:
         '''
         {
                 "summary": "A captivating summary of the entire itinerary (100+ words)",
-                "pricing": { "total_cost": "$500" },  # Estimated total cost
                 "country": "Malaysia",
                 "main_cover": "/malaysia/penang/cover.jpg",
+                "pricing": { "total_cost": "$500" },  # Estimated total cost
+                "itinerary_id": "NAN",
                 "itinerary": [
                 {
                         "day": 1,
@@ -125,7 +134,4 @@ travel_package_inner_prompt_2 = """
                 ]
         } 
         '''
-
-        ***pricing***
-        * Calculate the total package cost for total pax, referencing the Available Inventory else estimate from your knowledge.
 """

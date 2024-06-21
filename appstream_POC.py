@@ -90,11 +90,11 @@ def generate_content():
                                     safety_settings=safety_settings)
 
     def generate():
-        response = model.generate_content(query, stream=True)
+        stream_response = model.generate_content(query, stream=True)
         buffer = ""
         in_itinerary = False
         t0 = time.time()
-        for chunk in response:
+        for chunk in stream_response:
             chunk_text = chunk.text
 
             # Append to the buffer
@@ -186,7 +186,7 @@ def generate_content():
         total_time = np.round(time.time() - t0,2)
         print(f"\n\nEND OF RESPONSE ({total_time}s)\n\n")
 
-
+    # stream_response = model.generate_content(query, stream=True)
     return Response(stream_with_context(generate()), mimetype='application/json')
 
 

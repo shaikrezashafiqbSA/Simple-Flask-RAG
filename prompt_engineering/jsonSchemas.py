@@ -88,6 +88,7 @@ travel_jsonSchema_2 = {
         "summary": {"type": "string"}, 
         "country": {"type": "string"},
         "main_cover": {"type": "string"},
+        "itinerary_id": "NAN",
         "itinerary": {
             "type": "array",
             "items": {
