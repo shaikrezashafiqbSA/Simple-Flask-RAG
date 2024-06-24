@@ -6,6 +6,7 @@ import datetime
 from flask import Flask, request, jsonify, Response, stream_with_context
 import jwt
 from flask_cors import CORS
+from settings import CREDENTIALS_FILE, SHEET_NAME, WORKSHEET_NAME, BEARER_TOKEN_SECRET_KEY, WORKSHEET_PROMPTS_NAME
 
 from RAG.traveller import traveller
 from responses.static import static_response
@@ -26,14 +27,14 @@ def fix_json(text):
     return corrected_text
 
 def generate_token(user_id):
-    secret_key = "314159"  
+    secret_key = BEARER_TOKEN_SECRET_KEY  
     payload = {"user_id": user_id} #, "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24)}
     token = jwt.encode(payload, secret_key, algorithm="HS256")
     return token
 
 def validate_token(token):
     try:
-        secret_key = "314159"  # Replace with your actual secret key
+        secret_key = BEARER_TOKEN_SECRET_KEY 
         payload = jwt.decode(token, secret_key, algorithms=["HS256"])
         user_id = payload.get("user_id")
         # Validate user_id or any other relevant checks
@@ -147,10 +148,15 @@ def generate_package_from_model_V3():
         print(request.json)
         model = rag.model
         # print(itinerary_payload)
+
         try:
             top_inventories = None
             timestamp_id = time.time_ns()
             def generate():
+                    summary_match_flag = True
+                    country_match_flag = True
+                    cover_match_flag = True
+                    itinerary_id_match_flag = True
                     stream_response = model.generate_content(query, stream=True)
                     buffer = ""
                     all_content = ""
@@ -205,6 +211,45 @@ def generate_package_from_model_V3():
                                     yield json.dumps({'itinerary': item}) + "\n"
 
                         except json.JSONDecodeError:
+                            # Refined regex for summary
+                            if summary_match_flag:
+                                summary_match = re.search(r'"summary"\s*:\s*"([^"]*)"', buffer, re.DOTALL)
+                                if summary_match:
+                                    summary_data = summary_match.group(1)
+                                    yield json.dumps({'summary': summary_data}) + '\n'
+                                    print(f"!!!! YIELDED summary:\n{summary_data}\n")
+                                    buffer = buffer[summary_match.end():]  # Remove summary from buffer 
+                                    summary_match_flag = False
+                            # # Refined regex for country
+                            if country_match_flag:
+                                country_match = re.search(r'"country"\s*:\s*"([^"]*)"', buffer, re.DOTALL)
+                                if country_match:
+                                    country_data = country_match.group(1)
+                                    yield json.dumps({'country': country_data}) + '\n'
+                                    print(f"!!!! YIELDED Country: \n{country_data}\n")
+                                    buffer = buffer[country_match.end():]
+                                    country_match_flag = False
+
+                            # Refined regex for cover
+                            if cover_match_flag:
+                                cover_match = re.search(r'"main_cover"\s*:\s*"([^"]*\.jpg)"', buffer, re.DOTALL)  
+                                if cover_match:
+                                    cover_data = cover_match.group(1)
+                                    yield json.dumps({'main_cover': cover_data}) + '\n'
+                                    # buffer = buffer[cover_match.end():]  # Remove cover from buffer 
+                                    print(f"!!!! YIELDED main_cover:\n{cover_data}\n")
+                                    buffer = buffer[cover_match.end():]  # Remove cover from buffer
+                                    cover_match_flag = False
+
+                            # refined regex for itinerary_id
+                            if itinerary_id_match_flag:
+                                itinerary_id_match = re.search(r'"itinerary_id"\s*:\s*"([^"]*)"', buffer, re.DOTALL)
+                                if itinerary_id_match:
+                                    yield json.dumps({'itinerary_id': str(timestamp_id)}) + '\n'
+                                    print(f"!!!! YIELDED itinerary_id:\n{itinerary_id_match.group(1)}\n")
+                                    buffer = buffer[itinerary_id_match.end():]
+                                    itinerary_id_match_flag = False
+
                             # If not valid JSON, try to find complete itinerary items
                             for match in re.finditer(r'({"day":\s*\d+,.+?"tags":\s*\[[^\]]+\]})', buffer, re.DOTALL):
                                 payload = match.group(1)
@@ -212,38 +257,6 @@ def generate_package_from_model_V3():
                                 print(f"!!!! Yielded itinerary item:\n{payload}\n")
                                 # Remove the yielded itinerary item from the buffer
                                 buffer = buffer.replace(match.group(1), '', 1)
-
-                            # Refined regex for summary
-                            summary_match = re.search(r'"summary"\s*:\s*"([^"]*)"', buffer, re.DOTALL)
-                            if summary_match:
-                                summary_data = summary_match.group(1)
-                                yield json.dumps({'summary': summary_data}) + '\n'
-                                print(f"!!!! YIELDED summary:\n{summary_data}\n")
-                                buffer = buffer[summary_match.end():]  # Remove summary from buffer 
-
-                            # # Refined regex for country
-                            country_match = re.search(r'"country"\s*:\s*"([^"]*)"', buffer, re.DOTALL)
-                            if country_match:
-                                country_data = country_match.group(1)
-                                yield json.dumps({'country': country_data}) + '\n'
-                                print(f"!!!! YIELDED Country: \n{country_data}\n")
-                                buffer = buffer[country_match.end():]
-
-                            # Refined regex for cover
-                            cover_match = re.search(r'"main_cover"\s*:\s*"([^"]*\.jpg)"', buffer, re.DOTALL)  
-                            if cover_match:
-                                cover_data = cover_match.group(1)
-                                yield json.dumps({'main_cover': cover_data}) + '\n'
-                                # buffer = buffer[cover_match.end():]  # Remove cover from buffer 
-                                print(f"!!!! YIELDED main_cover:\n{cover_data}\n")
-                                buffer = buffer[cover_match.end():]  # Remove cover from buffer
-
-                            # refined regex for itinerary_id
-                            itinerary_id_match = re.search(r'"itinerary_id"\s*:\s*"([^"]*)"', buffer, re.DOTALL)
-                            if itinerary_id_match:
-                                yield json.dumps({'itinerary_id': str(timestamp_id)}) + '\n'
-                                print(f"!!!! YIELDED itinerary_id:\n{itinerary_id_match.group(1)}\n")
-                                buffer = buffer[itinerary_id_match.end():]
 
                             # refined regex for pricing
                             pricing_match = re.search(r'"pricing"\s*:\s*({.+?})', buffer, re.DOTALL)  
@@ -291,9 +304,6 @@ def generate_package_from_model_V3():
 # ======================================================================================================================
 # Get prompts table data by timestamp row
 # ======================================================================================================================
-CREDENTIALS_FILE = 'smart-platform.json'
-SHEET_NAME = "Master Database" 
-WORKSHEET_NAME = "prompts"
 
 @app.route('/api/get_itinerary/<timestamp>', methods=['GET'])
 def get_itinerary(timestamp):
@@ -307,14 +317,14 @@ def get_itinerary(timestamp):
         print(token)
         if not validate_token(token):
             return "Invalid token", 401
-        
+        print(f"timestamp---{timestamp}")
         if not isinstance(timestamp, str):
             return jsonify({"error": "Timestamp must be a string"}), 400
 
         try:
             # Fetch itinerary data from Google Sheet
             gspread_handler = GspreadHandler(credentials_filepath=CREDENTIALS_FILE)
-            row_data = gspread_handler.get_row_by_timestamp(SHEET_NAME, WORKSHEET_NAME, timestamp)
+            row_data = gspread_handler.get_row_by_timestamp(SHEET_NAME, WORKSHEET_PROMPTS_NAME, timestamp)
 
             if row_data:
                 # Extract and parse the 'itinerary' JSON string
