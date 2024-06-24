@@ -5,8 +5,7 @@ import json
 
 class GspreadHandler:
     def __init__(self, 
-                #  credentials_filepath='./gdrive/lunar-landing-389714-369d3f1b2a09.json',
-                 credentials_filepath='./gdrive/caramel-clock-418606-7475ecc43656.json'
+                 credentials_filepath
                  ):
         self.credentials_filepath = credentials_filepath
         self.gc = gspread.service_account(filename=self.credentials_filepath)
@@ -39,7 +38,7 @@ class GspreadHandler:
         """
         worksheet = self.get_sheet(sheet_name, worksheet_name)
         df = pd.DataFrame(worksheet.get_all_records())
-        print(df["timestamp"].iloc[-1])
+        print(df.tail(1))
         test = df["timestamp"].iloc[-1]
         str_timestamp = f"{str(timestamp)}"
         print(str_timestamp)
