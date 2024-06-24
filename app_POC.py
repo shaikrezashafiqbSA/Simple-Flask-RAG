@@ -163,7 +163,6 @@ def generate_package_from_model_V3():
                     stream_response = model.generate_content(query, stream=True)
                     buffer = ""
                     all_content = ""
-                    in_itinerary = False
                     t0 = time.time()
                     for chunk in stream_response:
                         chunk_text = chunk.text
@@ -171,10 +170,6 @@ def generate_package_from_model_V3():
                         # Append to the buffer
                         all_content += chunk_text
                         buffer += chunk_text
-                        if message["error"]:
-                            print(f"Error: {message['error']}")
-                            yield json.dumps({'summary': message["summary"]}) + '\n'
-                            return
                         try:
                             # print(f"buffer: {buffer}\n")
                             # Try to load the buffer as JSON
@@ -279,9 +274,10 @@ def generate_package_from_model_V3():
                         if '"pricing":' in buffer:
                             try:
                                 data = json.loads(buffer)
-                                yield json.dumps({'pricing': data['pricing']}) + "\n"
+                                yield json.dumps({'pricing': data['pricing']}) + '\n'
+                                print(f"!!!!\n\nYIELDED (buffer) pricing: {pricing_data}\n\n")
                             except json.JSONDecodeError:
-                                print(f"Error parsing remaining buffer: {buffer}")  
+                                print(f"!!!!\n\nError parsing remaining buffer: {buffer}")  
                         else: 
                             # yield the remaining buffer if it contains parts of the itinerary 
                             itinerary_matches = re.findall(r'({"day":\s*\d+,.+?"tags":\s*\[[^\]]+\]})', buffer, re.DOTALL)
