@@ -146,10 +146,13 @@ def generate_package_from_model_V3():
         # try:
         message, query = rag.generate_travel_itinerary(request.json, stream=True)
         print(request.json)
+
+
         model = rag.model
         # print(itinerary_payload)
 
         try:
+    
             top_inventories = None
             timestamp_id = time.time_ns()
             def generate():
@@ -168,7 +171,10 @@ def generate_package_from_model_V3():
                         # Append to the buffer
                         all_content += chunk_text
                         buffer += chunk_text
-
+                        if message["error"]:
+                            print(f"Error: {message['error']}")
+                            yield json.dumps({'summary': message["summary"]}) + '\n'
+                            return
                         try:
                             # print(f"buffer: {buffer}\n")
                             # Try to load the buffer as JSON
@@ -368,7 +374,7 @@ def generate_package_from_model_pure_LLM():
                         "prompt":""}
         """
         # try:
-        itinerary_payload = rag.generate_travel_itinerary(request.json, duo=False, pure_LLM=True)
+        itinerary_payload = rag.generate_travel_itinerary(request.json, pure_LLM=True)
         # print(itinerary_payload)
         try:
             print(itinerary_payload["response"].text)
