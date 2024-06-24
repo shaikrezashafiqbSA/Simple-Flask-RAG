@@ -11,7 +11,7 @@ travel_package_inner_prompt_1 = """
         ***itinerary***
         For EACH day, provide:
         - A detailed summary (at least 200 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner) 
-        - Activities should be referenced from the Available Inventory, or recommend alternatives based on your knowledge.
+        - Activities should be referenced from the AVAILABLE INVENTORY, or recommend alternatives based on your knowledge.
         - For EACH activity, provide a vivid, persuasive description (at least 200 words).
         - Include pricing and availability for each activity (use "unavailable" if not in inventory).
 
@@ -38,18 +38,19 @@ travel_package_inner_prompt_1 = """
         '''
 
         ***pricing***
-        * Calculate the total package cost, referencing the Available Inventory. If pricing isn't available, use "unavailable" for all fields.
+        * Calculate the total package cost, referencing the AVAILABLE INVENTORY. If pricing isn't available, use "unavailable" for all fields.
         'pricing': 'total_cost': 'unavailable'
 """
 
 travel_package_inner_prompt_2 = """
         ****OUTPUT****
-        IMPORTANT NOTE: The itinerary must strictly adhere to the following structure:
+        IMPORTANT NOTE: The itinerary must strictly adhere to the following structure, utilizing as much inventory from AVAILABLE INVENTORY as possible:
 
         ***summary***
         Write an engaging one-paragraph summary containing AT LEAST 100 words to recommend the travel itinerary.
         Open with a captivating sentence highlighting how the itinerary aligns with the customer's interests (based on tags and the itinerary generated below).
         Expand on each tag, briefly describing what the destination offers related to each tag, using persuasive language.
+        Also include a geographically feasible subdestination to subdestination highlights in the summary, eg: "from x to y to z to a back to x"
         
         ***country***
         "country": identify the country for the itinerary. Example: "country": "Malaysia"
@@ -63,18 +64,19 @@ travel_package_inner_prompt_2 = """
         ***itinerary***
         For EACH day, provide:
         - A detailed summary (at least 100 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner)
-        - Activities should be referenced from the Available Inventory (if matches customer request), ELSE recommend better alternatives based on your knowledge that better matches the customer's request.
-        - IMPORTANT: THERE MUST BE as much days as required by the user.
+        - Activities, accomodation should be constructed as much as possible from whatever in AVAILABLE INVENTORY LIST matching as best as possible to the CLIENT REQUIREMENTS (especially to tags), ELSE recommend better alternatives based on your knowledge that better matches the CLIENT REQUIREMENTS.
+        - The AVAILABLE INVENTORY LIST is a list of inventories (from accomodation packages, to activities, to food) that can be fulfilled in the destination. It includes the following fields: "title", "Vendor ID", "Activity ID", "Type", "Tags", "Description". Where "Description" includes inventory specifications such as activity/accomodation/pricing
+        - IMPORTANT: THERE MUST BE as much days as per CLIENT REQUIREMENTS.
         - IMPORTANT: THERE MUST BE morning, afternoon, and evening activities for each day.
-        - For EACH time slot (morning, afternoon, evening), include at least one food activity.
-        - The fields "Vendor ID" and "Activity ID" should be filled in with the corresponding values from the Available Inventory if available else put NAN.
+        - The fields "Vendor ID" and "Activity ID" MUST be filled in with the corresponding inventories from the AVAILABLE INVENTORY.
         - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. Else just put a placeholder image.
         - Limit tags to a maximum of 2 per time slot.
         - IMPORTANT: There must be at least 1 food activity and 1 places activity for each day and time slot.
+        - IMPORTANT: For each food activity and places activity referenced from AVAILABLE INVENTORY, summarize as much data (in at least 3 sentences) and description as possible from the activity description.  
         - IMPORTANT: There MUST not be repeat activities in the itinerary. There must be no repeat food activities from the same place.
 
         ***pricing***
-        * Calculate the total package cost for total pax, referencing the prices from the Available Inventory else estimate from your knowledge.
+        * Calculate the total package cost for total pax, referencing the prices from the AVAILABLE INVENTORY else estimate from your knowledge.
 
      Follow this example format for the payload:
         '''

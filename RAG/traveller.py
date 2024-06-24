@@ -10,7 +10,7 @@ from gdrive.gdrive_handler import GspreadHandler
 from utils.pickle_helper import pickle_this
 
 from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema_1, travel_jsonSchema_2
-from prompt_engineering.responses import EMPTY_RESPONSE
+from prompt_engineering.responses import NULL_PAX_RESPONSE, NULL_DURATION_RESPONSE, NULL_DESTINATION_RESPONSE
 from prompt_engineering.travel_agent import travel_package_inner_prompt_1, travel_package_inner_prompt_2
 
 
@@ -80,7 +80,7 @@ class traveller:
     def update_google_sheet(self, timestamp, prompt, itinerary):
         gspread_handler = GspreadHandler(credentials_filepath=CREDENTIALS_FILE)
         """Updates the Google Sheet with the extracted text."""
-        data = [{"timestamp":'"'+str(timestamp)+'"', "prompt": prompt, "itinerary": itinerary}]
+        data = [{"itinerary_id":str(timestamp)+'x', "prompt": prompt, "itinerary": itinerary}]
         df = pd.DataFrame(data)
         print("Updating Google Sheet...with:\n", df)
         # replace with the correct sheet name 
@@ -105,6 +105,14 @@ class traveller:
         
         return filtered_df
     
+    def filter_by_tags(self, tags_query, df, columns_to_embed=["Type","Tags", "Title"]):
+        # combine the columns to embed
+        df['tags'] = df[columns_to_embed].apply(lambda row: ' '.join([str(x) for x in row]), axis=1)
+        # Create a regex pattern to find the query anywhere in the destination string (case-insensitive)
+        pattern = re.compile(re.escape(tags_query), re.IGNORECASE)
+
+        pass
+    
     def prompt_intent_classifier(self, message):
         """
         Example prompt: "i want to go to perlis for a hidden gems trip"
@@ -127,7 +135,7 @@ class traveller:
         output = json.loads(response.text)
         return output
 
-    def generate_travel_itinerary(self, message, duo=False, pure_LLM=False, stream=False, version=2):
+    def generate_travel_itinerary(self, message, pure_LLM=False, stream=False, version=2):
         # Firstly check if prompt or other fields exists in message
         if "prompt" in message:
             initial_prompt = message["prompt"]
@@ -135,10 +143,25 @@ class traveller:
             print(f"Prompt: {message['prompt']}")
             message = self.prompt_intent_classifier(message["prompt"])
             message["prompt"] = initial_prompt
+            # check if duration is greater than "10 days" if so produce error: "Duration cannot be greater than 10 days"
+            if message["duration"] > 7:
+                empty_response = EmptyResponse(json.dumps(NULL_DURATION_RESPONSE))
+                # return empty response in format: itinerary_payload["response"].text)
+                itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
+                return itinerary_payload
+            
+            # check if number_of_pax is greater than "10 pax" if so produce error: "Number of Pax cannot be greater than 10 pax"
+            if message["number_of_pax"] > 10:
+                empty_response = EmptyResponse(json.dumps(NULL_PAX_RESPONSE))
+                # return empty response in format: itinerary_payload["response"].text)
+                itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
+                return itinerary_payload
+
+            message["error"] = False
             # check if message["destination"] is "NAN"
             if message["destination"] == "NAN":
 
-                empty_response = EmptyResponse(json.dumps(EMPTY_RESPONSE))
+                empty_response = EmptyResponse(json.dumps(NULL_DESTINATION_RESPONSE))
                 # return empty response in format: itinerary_payload["response"].text)
                 itinerary_payload = {"prompt": message, "response": empty_response}
                 return itinerary_payload
@@ -165,15 +188,15 @@ class traveller:
             print(top_inventories)
             top_inventories_json = top_inventories.to_json(orient='records')
             # pickle this top_inventories_json
-            # pickle_this(top_inventories_json, pickle_name="top_inventories", path="./database/top_inventories/")
+            # x = pickle_this(top_inventories_json, pickle_name="top_inventories", path="./database/top_inventories/")
         else:
             top_inventories_json = None
         print("Generating itinerary...")
         # prompt the user to generate the travel package
         if stream:
-            return self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM, stream=stream, version=version)
+            return self.generate_travel_package_foundational(message, top_inventories_json, pure_LLM=pure_LLM, stream=stream, version=version)
         else:
-            itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, duo=duo, pure_LLM=pure_LLM, version=version, stream=stream)
+            itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, pure_LLM=pure_LLM, version=version, stream=stream)
             return itinerary_payload
 
     def fix_json(self,text):
@@ -186,7 +209,6 @@ class traveller:
     def generate_travel_package_foundational(self, 
                                              message, 
                                              top_inventories = None,
-                                             duo=False,
                                              pure_LLM=False, 
                                              stream=False, 
                                              version=2):
@@ -228,13 +250,15 @@ class traveller:
                                 """
             # use LLM to extract out destination from the prompt
 
-        travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given client requirements and available inventory.
+        travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given CLIENT REQUIREMENTS and AVAILABLE INVENTORY.
 
         ****INPUTS****
-        ***Client Requirements:***
-        IMPORTANT: The itinerary must strictly adhere to the client requirements: duration, destination, tags, budget;
+        ***CLIENT REQUIREMENTS:***
+        IMPORTANT: The itinerary must strictly adhere to the client requirements: destination, dates, duration, number of pax, tags, budget;
+        IMPORTANT: make sure the number of days required is adhered to. If x days is required, ensure there are x days in the itinerary.
+        IMPORTANT: Make sure itinerary caters to the number of pax.
         {client_requirements}
-        ***Available inventory:***
+        ***AVAILABLE INVENTORY:***
         {top_inventories}
         Following content outline:
         {travel_package_inner_prompt_}

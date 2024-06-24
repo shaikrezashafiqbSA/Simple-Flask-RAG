@@ -15,8 +15,8 @@ intent_jsonSchema = {
                 "description": "The dates of the trip (e.g., 2024-06-01 to 2024-06-07)." 
                 },
                 "duration": { 
-                "type": "string", 
-                "description": "The duration of the trip (e.g., 7 days)." 
+                "type": "integer", 
+                "description": "The duration in days of the trip (e.g., 7)." 
                 },
                 "number_of_pax": { 
                 "type": "integer", 
