@@ -9,7 +9,7 @@ import google.generativeai as genai
 from gdrive.gdrive_handler import GspreadHandler
 from utils.pickle_helper import pickle_this
 
-from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema_1, travel_jsonSchema_2
+from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema_1, travel_jsonSchema_2, travel_jsonSchema_null_duration, travel_jsonSchema_null_pax
 from prompt_engineering.responses import NULL_PAX_RESPONSE, NULL_DURATION_RESPONSE, NULL_DESTINATION_RESPONSE
 from prompt_engineering.travel_agent import travel_package_inner_prompt_1, travel_package_inner_prompt_2
 
@@ -144,18 +144,18 @@ class traveller:
             message = self.prompt_intent_classifier(message["prompt"])
             message["prompt"] = initial_prompt
             # check if duration is greater than "10 days" if so produce error: "Duration cannot be greater than 10 days"
-            if message["duration"] > 7:
-                empty_response = EmptyResponse(json.dumps(NULL_DURATION_RESPONSE))
-                # return empty response in format: itinerary_payload["response"].text)
-                itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
-                return itinerary_payload
+            # if message["duration"] > 7:
+            #     empty_response = EmptyResponse(json.dumps(NULL_DURATION_RESPONSE))
+            #     # return empty response in format: itinerary_payload["response"].text)
+            #     itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
+            #     return itinerary_payload
             
-            # check if number_of_pax is greater than "10 pax" if so produce error: "Number of Pax cannot be greater than 10 pax"
-            if message["number_of_pax"] > 10:
-                empty_response = EmptyResponse(json.dumps(NULL_PAX_RESPONSE))
-                # return empty response in format: itinerary_payload["response"].text)
-                itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
-                return itinerary_payload
+            # # check if number_of_pax is greater than "10 pax" if so produce error: "Number of Pax cannot be greater than 10 pax"
+            # if message["number_of_pax"] > 10:
+            #     empty_response = EmptyResponse(json.dumps(NULL_PAX_RESPONSE))
+            #     # return empty response in format: itinerary_payload["response"].text)
+            #     itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
+            #     return itinerary_payload
 
             message["error"] = False
             # check if message["destination"] is "NAN"
@@ -163,7 +163,7 @@ class traveller:
 
                 empty_response = EmptyResponse(json.dumps(NULL_DESTINATION_RESPONSE))
                 # return empty response in format: itinerary_payload["response"].text)
-                itinerary_payload = {"prompt": message, "response": empty_response}
+                itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
                 return itinerary_payload
             print(f"----> {message}")
         else:
@@ -249,22 +249,36 @@ class traveller:
                                 * budget: {message["budget"]}
                                 """
             # use LLM to extract out destination from the prompt
+        if message["duration"] > 7:
 
-        travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given CLIENT REQUIREMENTS and AVAILABLE INVENTORY.
+            travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary. However you are given a client requirement that is not feasible. The client requires a trip that is more than 10 days.
+            
+            Return the JSONschema strictly:
+            <JSONSchema>{json.dumps(travel_jsonSchema_null_duration)}</JSONSchema>
+            """
+        elif message["number_of_pax"] > 10:
+            travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary. However you are given a client requirement that is not feasible. The client requires a trip for more than 10 pax.
+            
+            Return the JSONschema strictly:
+            <JSONSchema>{json.dumps(travel_jsonSchema_null_pax)}</JSONSchema>
+            """
+        else:
+            travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given CLIENT REQUIREMENTS and AVAILABLE INVENTORY.
+        
+            ****INPUTS****
+            ***CLIENT REQUIREMENTS:***
+            IMPORTANT: The itinerary must strictly adhere to the client requirements: destination, dates, duration, number of pax, tags, budget;
+            IMPORTANT: make sure the number of days required is adhered to. If x days is required, ensure there are x days in the itinerary.
+            IMPORTANT: Make sure itinerary caters to the number of pax.
+            {client_requirements}
+            ***AVAILABLE INVENTORY:***
+            {top_inventories}
+            Following content outline:
+            {travel_package_inner_prompt_}
 
-        ****INPUTS****
-        ***CLIENT REQUIREMENTS:***
-        IMPORTANT: The itinerary must strictly adhere to the client requirements: destination, dates, duration, number of pax, tags, budget;
-        IMPORTANT: make sure the number of days required is adhered to. If x days is required, ensure there are x days in the itinerary.
-        IMPORTANT: Make sure itinerary caters to the number of pax.
-        {client_requirements}
-        ***AVAILABLE INVENTORY:***
-        {top_inventories}
-        Following content outline:
-        {travel_package_inner_prompt_}
-        Follow the JSON schema strictly (from the content ouline above) fill in all required fields:
-        <JSONSchema>{json.dumps(travel_jsonSchema_)}</JSONSchema>
-        """
+            Follow the JSONschema strictly (from the content ouline above) fill in all required fields:
+            <JSONSchema>{json.dumps(travel_jsonSchema_)}</JSONSchema>
+            """
         self.model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY)
         # measure token count
         total_input_tokens = self.count_tokens(self.model, travel_package_prompt)
