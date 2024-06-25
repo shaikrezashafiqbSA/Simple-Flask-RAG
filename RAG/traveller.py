@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import json
 import time 
-from settings import GEMINI_API_KEY as GEMINI_API_KEY
+from settings import GEMINI_API_KEY1 as GEMINI_API_KEY
 from settings import CREDENTIALS_FILE, SHEET_NAME, WORKSHEET_NAME
 import google.generativeai as genai
 from gdrive.gdrive_handler import GspreadHandler

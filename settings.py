@@ -3,6 +3,7 @@ load_dotenv()
 import os 
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY1 = os.getenv("GEMINI_API_KEY1")
 
 CREDENTIALS_FILE = os.getenv("CREDENTIALS_FILE")
 SHEET_NAME = os.getenv("SHEET_NAME")
