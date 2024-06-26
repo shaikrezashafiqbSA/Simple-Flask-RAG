@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    </head>
+</head>
 
 <body>
     <div id="container">
@@ -14,11 +14,11 @@
                 placeholder="i want to go to penang in august for 3 days with 2 people. i want to experience foodie, attractions, magical. my budget is $2000."></textarea>
             <button onclick="generateItinerary()">Generate Itinerary</button>
         </div>
-        <div id="summary-container"> 
+        <div id="summary-container">
             <h2>Trip Summary:</h2>
             <div id="summary"></div>
         </div>
-        
+
         <div id="country-container">
             <h2>Country:</h2>
             <div id="country"></div>
@@ -44,92 +44,93 @@
             <div id="pricing"></div>
         </div>
     </div>
-    <script>
-        const outputElement = document.getElementById('output');
-        const promptInput = document.getElementById('prompt-input');
-        const itineraryArea = document.getElementById('itinerary-area');
-        const summaryElement = document.getElementById('summary');
-        const countryElement = document.getElementById('country');
-        const coverElement = document.getElementById('main_cover');
-        const pricingElement = document.getElementById('pricing');
+    <script>
+        const outputElement = document.getElementById('output');
+        const promptInput = document.getElementById('prompt-input');
+        const itineraryArea = document.getElementById('itinerary-area');
+        const summaryElement = document.getElementById('summary');
+        const countryElement = document.getElementById('country');
+        const coverElement = document.getElementById('main_cover');
+        const pricingElement = document.getElementById('pricing');
         const summaryContainer = document.getElementById('summary-container');
         const itineraryIdElement = document.getElementById('itinerary_id');
+
         function getBearerToken() {
-                return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxfQ.MyVR6Tz4dHLLmqWPHWLnyUp9qnX1HyGDr-WRoWe6LXU'; 
-            }
-        function generateItinerary() {
-            outputElement.innerHTML = ""; // Clear previous output
-            summaryElement.textContent = ""; // Clear previous summary
-            pricingElement.textContent = ""; // Clear previous pricing
-            itineraryArea.style.display = 'block'; // Show itinerary area
+            return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxfQ.MyVR6Tz4dHLLmqWPHWLnyUp9qnX1HyGDr-WRoWe6LXU';
+        }
+
+        function generateItinerary() {
+            outputElement.innerHTML = ""; // Clear previous output
+            summaryElement.textContent = ""; // Clear previous summary
+            pricingElement.textContent = ""; // Clear previous pricing
+            itineraryArea.style.display = 'block'; // Show itinerary area
             summaryContainer.style.display = 'block'; // Show the summary container initially
             itineraryIdElement.textContent = '';
-             const token = getBearerToken();
-            fetch('http://127.0.0.1:5000/api/3', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
+            const token = getBearerToken();
+            fetch('http://127.0.0.1:5000/api/3', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ prompt: promptInput.value })
-            })
-            .then(response => {
-                const reader = response.body.getReader();
-                let buffer = '';
+                body: JSON.stringify({ prompt: promptInput.value })
+            })
+                .then(response => {
+                    const reader = response.body.getReader();
+                    let buffer = '';
 
-                return new ReadableStream({
-                    start(controller) {
-                        function push() {
-                            reader.read().then(({ done, value }) => {
-                                if (done) {
-                                    // Entire response received, parse and display
-                                    controller.close();
-                                    return;
-                                }
-                                const chunkText = new TextDecoder("utf-8").decode(value);
-                                buffer += chunkText;
+                    return new ReadableStream({
+                        start(controller) {
+                            function push() {
+                                reader.read().then(({ done, value }) => {
+                                    if (done) {
+                                        // Entire response received, parse and display
+                                        controller.close();
+                                        return;
+                                    }
+                                    const chunkText = new TextDecoder("utf-8").decode(value);
+                                    buffer += chunkText;
 
-                                // Attempt to parse the chunk
-                                try {
-                                    const chunkJson = JSON.parse(buffer);
-                                    displayChunk(chunkJson);
-                                    buffer = ''; // Clear the buffer after successful parse
-                                } catch (error) {
-                                    // Chunk might be incomplete, wait for more data
-                                }
+                                    // Attempt to parse the chunk
+                                    try {
+                                        const chunkJson = JSON.parse(buffer);
+                                        displayChunk(chunkJson);
+                                        buffer = ''; // Clear the buffer after successful parse
+                                    } catch (error) {
+                                        // Chunk might be incomplete, wait for more data
+                                    }
 
-                                push();
-                            });
-                        }
-                        push();
-                    }
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                outputElement.textContent = "Error fetching itinerary. Please try again.";
-            });
-        }
+                                    push();
+                                });
+                            }
+                            push();
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    outputElement.textContent = "Error fetching itinerary. Please try again.";
+                });
+        }
 
-        function displayChunk(chunkJson) {
+        function displayChunk(chunkJson) {
             // Check if any of the relevant keys are in the chunk
             if (Object.keys(chunkJson).length === 0) { //if the chunk is empty
-                return; 
+                return;
             }
-            if ('summary' in chunkJson) {
-                summaryElement.textContent = chunkJson.summary;
-            }     else if ('main_cover' in chunkJson) {
+            if ('summary' in chunkJson) {
+                summaryElement.textContent = chunkJson.summary;
+            } else if ('main_cover' in chunkJson) {
                 // Update cover image
                 coverElement.innerHTML = `<img src="${chunkJson.main_cover}" alt="Trip Cover" style="max-width: 100%; height: auto;">`;
-            } else if  ('itinerary_id' in chunkJson) {
+            } else if ('itinerary_id' in chunkJson) {
                 // Update itinerary ID
                 itineraryIdElement.textContent = `Itinerary ID: ${chunkJson.itinerary_id}`;
-            } 
-            else if ('country' in chunkJson) {
+            } else if ('country' in chunkJson) {
                 // Update country
                 countryElement.textContent = `Country: ${chunkJson.country}`;
-            }
-            else if ('itinerary' in chunkJson) {
-                const itineraryItem = chunkJson.itinerary; 
+            } else if ('itinerary' in chunkJson) {
+                const itineraryItem = chunkJson.itinerary;
                 const dayIndex = itineraryItem.day;
 
                 // Create a new day section if needed
@@ -141,13 +142,12 @@
                     outputElement.appendChild(dayElement);
                 }
 
-                // Add the description, time, and city to the day section
+                // Add the description and city to the day section
                 dayElement.innerHTML += `<p>${itineraryItem.description}</p>`;
-                dayElement.innerHTML += `<p>Time: ${itineraryItem.time}, City: ${itineraryItem.city}</p>`;
+                dayElement.innerHTML += `<p>City: ${itineraryItem.city}</p>`;
                 if (itineraryItem.cover) {
                     dayElement.innerHTML += `<img src="${itineraryItem.cover}" alt="Day ${dayIndex} Cover" style="max-width: 100%; height: auto;">`;
                 }
-
 
                 // Add the activities to the day section
                 dayElement.innerHTML += '<div class="activities">';
@@ -157,6 +157,7 @@
                         for (const activity of itineraryItem[type]) {
                             dayElement.innerHTML += `<h5>${activity.name}</h5>`;
                             dayElement.innerHTML += `<p>${activity.description}</p>`;
+                            dayElement.innerHTML += `<p>Time: ${activity.time}</p>`; // Include the time here
                             if ('Vendor ID' in activity && 'Activity ID' in activity) {  // Check if these keys exist
                                 dayElement.innerHTML += `<p>Vendor ID: ${activity['Vendor ID']}, Activity ID: ${activity['Activity ID']}</p>`;
                             }
@@ -167,11 +168,12 @@
                     }
                 }
                 dayElement.innerHTML += '</div>';
-            } else if ('pricing' in chunkJson) {
-                pricingElement.textContent = `Total Cost: ${chunkJson.pricing.total_cost}`;
-            }
-        }
+            } else if ('pricing' in chunkJson) {
+                pricingElement.textContent = `Total Cost: ${chunkJson.pricing.total_cost}`;
+            }
+        }
 
-    </script>
+    </script>
 </body>
+
 </html>

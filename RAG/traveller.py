@@ -263,9 +263,10 @@ class traveller:
             ****INPUTS****
             ***CLIENT REQUIREMENTS:***
             IMPORTANT: The itinerary must strictly adhere to the client requirements: destination, dates, duration, number of pax, tags, budget;
-            IMPORTANT: make sure the number of days required is adhered to. If x days is required, ensure there are x days in the itinerary.
-            IMPORTANT: Make sure itinerary caters to the number of pax.
-            IMPORTANT: Make sure itinerary caters to the tags and customer_data is available.
+            Do not produce flight based itineraries, eg: "return to airport to relax for the day"
+            IMPORTANT: make sure the number of days required is adhered to. If 7 days are required, there MUST BE 7 days in the itinerary generated.
+            IMPORTANT: Make sure itinerary caters for the number of pax, eg: if for family, ensure child-friendly activities are included.
+            IMPORTANT: Make sure itinerary caters to the tags and customer_data if provided.
             {client_requirements}
             ***AVAILABLE INVENTORY:***
             {top_inventories}

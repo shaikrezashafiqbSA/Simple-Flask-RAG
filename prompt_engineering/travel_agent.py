@@ -168,7 +168,7 @@ travel_package_inner_prompt_2 = """
         - Include a placeholder "cover" image filename for each activity. Example: "cover": "/country/destination/x1/y1.jpg" where x1 and y1 are the Vendor ID and Activity ID respectively if available. Else just put a placeholder image.
         - Limit tags to a maximum of 2 per time slot.
         - IMPORTANT: There must be at least 1 food activity and 1 places activity for each day's time slot.
-        - IMPORTANT: For each food activity and places activity referenced from AVAILABLE INVENTORY, summarize as much data (in at least 3 sentences) and description as possible from the activity description.  
+        - IMPORTANT: For each food activity and places activity referenced from AVAILABLE INVENTORY, summarize as much data (in at least 3 sentences) and description as possible from the "Description".  
         - IMPORTANT: There MUST not be repeat activities in the itinerary. There must be no repeat food activities from the same place.
 
         ***pricing***
@@ -214,8 +214,8 @@ travel_package_inner_prompt_2 = """
                         "description": "Explore the vibrant street art scene of George Town...",
                         "time": "morning",
                         "cover": "/malaysia/penang/streetart.jpg",
-                        "Vendor ID": X3,
-                        "Activity ID": Y3},
+                        "Vendor ID": "NAN",
+                        "Activity ID": "NAN},
                         {"name": "Cheong Fatt Tze Mansion (The Blue Mansion)", 
                         "description": "Visit this stunning 19th-century mansion...",
                         "time": "afternoon",
