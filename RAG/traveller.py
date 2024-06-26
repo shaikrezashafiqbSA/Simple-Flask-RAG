@@ -9,7 +9,7 @@ import google.generativeai as genai
 from gdrive.gdrive_handler import GspreadHandler
 from utils.pickle_helper import pickle_this
 
-from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema_1, travel_jsonSchema_2, travel_jsonSchema_null_duration, travel_jsonSchema_null_pax
+from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema_1, travel_jsonSchema_2, travel_jsonSchema_null_duration, travel_jsonSchema_null_pax, travel_jsonSchema_null_destination
 from prompt_engineering.responses import NULL_PAX_RESPONSE, NULL_DURATION_RESPONSE, NULL_DESTINATION_RESPONSE
 from prompt_engineering.travel_agent import travel_package_inner_prompt_1, travel_package_inner_prompt_2
 
@@ -120,7 +120,7 @@ class traveller:
 
         """
         user_intent_prompt = f"""You are a travel assistant. A user wants to go on a trip. 
-        Extract the following details if available: destination, dates, duration, number_of_pax, tags, and budget. 
+        Extract the following details if available: destination, dates, duration, number_of_pax, tags, budget, customer_id. 
         If a detail is not mentioned, leave it as 'NAN'.
         If duration is NAN, assume it is a 3-day trip for 1 person.
         IMPORTANT: If the destination is fictional or nonsensical, return 'NAN' for destination.
@@ -133,6 +133,16 @@ class traveller:
         model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY) 
         response = self.prompt(model, user_intent_prompt)
         output = json.loads(response.text)
+        if output["customer_id"] != 'NAN':
+            # load the customer_id from db
+            customer_datas = self.get_df(sheet_name=SHEET_NAME, worksheet_name="customer_profile")
+            # search for the customer_id
+            try:
+                customer_data = customer_datas[customer_datas["CustomerID (Primary Key)"] == output["customer_id"]]
+                output["customer_data"] = customer_data
+            except:
+                output["customer_data"] = "NAN"
+            output["customer_data"] = customer_data
         return output
 
     def generate_travel_itinerary(self, message, pure_LLM=False, stream=False, version=2):
@@ -143,28 +153,7 @@ class traveller:
             print(f"Prompt: {message['prompt']}")
             message = self.prompt_intent_classifier(message["prompt"])
             message["prompt"] = initial_prompt
-            # check if duration is greater than "10 days" if so produce error: "Duration cannot be greater than 10 days"
-            # if message["duration"] > 7:
-            #     empty_response = EmptyResponse(json.dumps(NULL_DURATION_RESPONSE))
-            #     # return empty response in format: itinerary_payload["response"].text)
-            #     itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
-            #     return itinerary_payload
-            
-            # # check if number_of_pax is greater than "10 pax" if so produce error: "Number of Pax cannot be greater than 10 pax"
-            # if message["number_of_pax"] > 10:
-            #     empty_response = EmptyResponse(json.dumps(NULL_PAX_RESPONSE))
-            #     # return empty response in format: itinerary_payload["response"].text)
-            #     itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
-            #     return itinerary_payload
 
-            message["error"] = False
-            # check if message["destination"] is "NAN"
-            if message["destination"] == "NAN":
-
-                empty_response = EmptyResponse(json.dumps(NULL_DESTINATION_RESPONSE))
-                # return empty response in format: itinerary_payload["response"].text)
-                itinerary_payload = {"prompt": message, "response": empty_response, "error":True}
-                return itinerary_payload
             print(f"----> {message}")
         else:
             # use the other fields to generate the travel package
@@ -243,8 +232,8 @@ class traveller:
             client_requirements = f"""
                                 * destination: {message["destination"]}
                                 * dates: {message["dates"]}
-                                * duration: {message["duration"]}
-                                * number of pax: {message["number_of_pax"]}
+                                * duration: {message["duration"]} days
+                                * number of pax: {message["number_of_pax"]} people
                                 * tags: {message["filter"]}
                                 * budget: {message["budget"]}
                                 """
@@ -254,13 +243,19 @@ class traveller:
             travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary. However you are given a client requirement that is not feasible. The client requires a trip that is more than 10 days.
             
             Return the JSONschema strictly:
-            <JSONSchema>{json.dumps(travel_jsonSchema_null_duration)}</JSONSchema>
+            <JSONSchema>{json.dumps(NULL_DURATION_RESPONSE)}</JSONSchema>
             """
         elif message["number_of_pax"] > 10:
             travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary. However you are given a client requirement that is not feasible. The client requires a trip for more than 10 pax.
             
             Return the JSONschema strictly:
-            <JSONSchema>{json.dumps(travel_jsonSchema_null_pax)}</JSONSchema>
+            <JSONSchema>{json.dumps(NULL_PAX_RESPONSE)}</JSONSchema>
+            """
+        elif message["destination"] == "NAN":
+            travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary. However you are given a client requirement that is not feasible. The client requires a trip to a fictional or nonsensical destination.
+            
+            Return the JSONschema strictly:
+            <JSONSchema>{json.dumps(NULL_DESTINATION_RESPONSE)}</JSONSchema>
             """
         else:
             travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given CLIENT REQUIREMENTS and AVAILABLE INVENTORY.
@@ -270,6 +265,7 @@ class traveller:
             IMPORTANT: The itinerary must strictly adhere to the client requirements: destination, dates, duration, number of pax, tags, budget;
             IMPORTANT: make sure the number of days required is adhered to. If x days is required, ensure there are x days in the itinerary.
             IMPORTANT: Make sure itinerary caters to the number of pax.
+            IMPORTANT: Make sure itinerary caters to the tags and customer_data is available.
             {client_requirements}
             ***AVAILABLE INVENTORY:***
             {top_inventories}

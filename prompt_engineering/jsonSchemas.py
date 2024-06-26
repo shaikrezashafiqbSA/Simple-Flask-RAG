@@ -32,9 +32,13 @@ intent_jsonSchema = {
                 "budget": { 
                 "type": "string", 
                 "description": "The budget for the trip." 
+                },
+                "customer_id": { 
+                "type": "string", 
+                "description": "customer if provided, else NAN" 
                 }
             },
-            "required": ["destination", "dates", "duration", "number_of_pax", "filter", "budget"]
+            "required": ["destination", "dates", "duration", "number_of_pax", "filter", "budget", "customer_id"]
             }
 
 
@@ -221,6 +225,73 @@ travel_jsonSchema_null_pax = {
     "type": "object",
     "properties": {
         "summary": "Number of pax > 10. Please select a smaller number of pax",
+        "country": "NAN",
+        "main_cover": "NAN",
+        "itinerary_id": "NAN",
+        "itinerary": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "day": "NAN",
+                    "title": "NAN",
+                    "description": "NAN",
+                    "time": "NAN",          # Moved "time" here
+                    "city": "NAN",          # Added "city"
+                    "cover": "NAN",         # Moved "cover" here
+                    "foods": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": "NAN",
+                                "description": "NAN",
+                                "cover": "NAN",
+                                "Vendor ID": "NAN",
+                                "Activity ID": "NAN"
+                            },
+                            "required": ["name", "description", "cover"]
+                        },
+                        "maxItems": 2         # Limit to 2 items
+                    },
+                    "places": {              # Added "places"
+                        "type": "array",
+                        "items": {
+                            "type": "object",  # Removed extra "items"
+                            "properties": {
+                                "name": "NAN",
+                                "description": "NAN",
+                                "cover": "NAN",
+                                "Vendor ID": "NAN",
+                                "Activity ID": "NAN"
+                            },
+                            "required": ["name", "description", "cover"]
+                        },
+                        "maxItems": 2         # Limit to 2 items
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": "NAN",    # Added "items"
+                        "maxItems": 2         # Limit to 2 items
+                    }
+                },
+                "required": ["day", "title", "description", "time", "city", "cover", "foods", "places", "tags"]
+            }
+        },
+        "pricing": {
+            "type": "object",
+            "properties": {
+                "total_cost": "NAN"
+            }
+        }
+    },
+    "required": ["summary", "country", "main_cover", "itinerary", "pricing"]  
+}
+
+travel_jsonSchema_null_destination = {
+    "type": "object",
+    "properties": {
+        "summary": "Unsupported destination, please try another destination.",
         "country": "NAN",
         "main_cover": "NAN",
         "itinerary_id": "NAN",
