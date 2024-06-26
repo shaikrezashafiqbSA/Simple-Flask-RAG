@@ -354,3 +354,72 @@ travel_jsonSchema_null_destination = {
     },
     "required": ["summary", "country", "main_cover", "itinerary", "pricing"]  
 }
+
+
+travel_jsonSchema_2 = {
+    "type": "object",
+    "properties": {
+        "summary": {"type": "string"}, 
+        "country": {"type": "string"},
+        "main_cover": {"type": "string"},
+        "itinerary_id": "NAN",
+        "itinerary": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "day": {"type": "integer"},
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "city": {"type": "string"},        # Added "city"
+                    "cover": {"type": "string"},       # Moved "cover" here
+                    "foods": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "description": {"type": "string"},
+                                "time": {"type": "string"},        # Moved "time" here
+                                "cover": {"type": "string"},
+                                "Vendor ID": {"type": "string"},
+                                "Activity ID": {"type": "string"}
+                            },
+                            "required": ["name", "description", "time", "cover", "Vendor ID", "Activity ID"]
+                        },
+                        "minItems": 3                   # Limit to 2 items
+                    },
+                    "places": {                        # Added "places"
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "description": {"type": "string"},
+                                "time": {"type": "string"},        # Moved "time" here
+                                "cover": {"type": "string"},
+                                "Vendor ID": {"type": "string"},
+                                "Activity ID": {"type": "string"}
+                            },
+                            "required": ["name", "description", "time", "cover","Vendor ID", "Activity ID"]
+                        },
+                        "minItems": 3                   # Limit to 2 items
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "maxItems": 2                   # Limit to 2 items
+                    },
+                },
+                "required": ["day", "title", "description", "city", "cover", "foods", "places","tags"] 
+            }
+        },
+        "pricing": {
+            "type": "object",
+            "properties": {
+                "total_cost": {"type": "string"}
+            }
+        },
+    },
+    "required": ["summary", "country", "main_cover", "itinerary","pricing"] # Added "prompt"
+}
