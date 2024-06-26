@@ -3,50 +3,35 @@ import numpy as np
 import pandas as pd
 import json
 import time 
-from settings import GEMINI_API_KEY1 as GEMINI_API_KEY1
 from settings import GEMINI_API_KEY as GEMINI_API_KEY
+from settings import CREDENTIALS_FILE, SHEET_NAME, WORKSHEET_NAME
 import google.generativeai as genai
 from gdrive.gdrive_handler import GspreadHandler
-
-from scipy.spatial.distance import cosine
 from utils.pickle_helper import pickle_this
 
-CREDENTIALS_FILE = 'smart-platform.json'
-SHEET_NAME = "Master Database" 
-WORKSHEET_NAME = "inventory_processed"
+from prompt_engineering.jsonSchemas import intent_jsonSchema, travel_jsonSchema_1, travel_jsonSchema_2, travel_jsonSchema_null_duration, travel_jsonSchema_null_pax, travel_jsonSchema_null_destination
+from prompt_engineering.responses import NULL_PAX_RESPONSE, NULL_DURATION_RESPONSE, NULL_DESTINATION_RESPONSE
+from prompt_engineering.travel_agent import travel_package_inner_prompt_1, travel_package_inner_prompt_2
+
+
+class EmptyResponse:
+    def __init__(self, text):
+        self.text = text
+
+
 class traveller:
     def __init__(self,
                  generation_config = None,
                  block_threshold="BLOCK_NONE", ):
-        # To be generalised for other LLMs in the future
-        # self.co = cohere.Client(COHERE_API_KEY)
-        self.GEMINI_API_KEY1 = GEMINI_API_KEY1
         self.GEMINI_API_KEY = GEMINI_API_KEY
-        # self.co = cohere.Client(COHERE_API_KEY)
-        self.model_name = "gemini-1.5-pro-latest"
-        self.embed_model = 'models/embedding-001'
+        self.model_name = "gemini-1.5-flash" 
 
-        """
-        API_KEY: str
-            The API key for the Google Generative AI API
-            BLOCK_NONE = Always show regardless of probability of unsafe content
-            BLOCK_ONLY_HIGH = Block when high probability of unsafe content
-            BLOCK_MEDIUM_AND_ABOVE = Block when medium or high probability of unsafe content
-            BLOCK_LOW_AND_ABOVE = Block when low, medium or high probability of unsafe content
-        """
         if generation_config is None:
-            # self.generation_config =glm.GenerationConfig(response_mime_type="application/json",
-            #                                              response_schema="application/json",
-            #                                             temperature=0.9,  
-            #                                             top_p=0.95,
-            #                                             top_k=40,
-            #                                             max_output_tokens=40000,  
-            #                                         )
             self.generation_config = {"response_mime_type": "application/json",
                                         "temperature": 0.9,
                                         "top_p": 0.95,
                                         "top_k": 40,
-                                        "max_output_tokens": 100000,}
+                                        "max_output_tokens": 1000000,}
         self.safety_settings = [
             {
             "category": "HARM_CATEGORY_HARASSMENT",
@@ -66,8 +51,6 @@ class traveller:
             },
         ]
 
-
-
     def build_model(self, model_name, api_key):
         genai.configure(api_key = api_key)
 
@@ -79,8 +62,8 @@ class traveller:
     def count_tokens(self, model, text):
         return model.count_tokens(text)
     
-    def prompt(self, model, query):
-        response = model.generate_content(query)
+    def prompt(self, model, query, stream=False):
+        response = model.generate_content(query, stream=stream)
         # print(response.text)
         return response
 
@@ -88,111 +71,24 @@ class traveller:
         gspread_handler = GspreadHandler(credentials_filepath=CREDENTIALS_FILE)
         df = gspread_handler.get_sheet_as_df(sheet_name=sheet_name, worksheet_name=worksheet_name)
         return df
-
-
-    def embed_text(self,
-                   text,
-                   title=None,
-                   task_type="retrieval_document", 
-                   model='models/embedding-001', ):
-        """
-        Task Type	                    Description
-        retrieval_query
-            	Specifies the given text is a query in a search/retrieval setting.
-        retrieval_document
-            	Specifies the given text is a document in a search/retrieval setting.
-        semantic_similiarity
-            	Specifies the given text will be used for Semantic Textual Similarity (STS).
-        classification
-            	Specifies that the embeddings will be used for classification.
-        clustering
-            	Specifies that the embeddings will be used for clustering.
-
-        """
-        return genai.embed_content(model=model,
-                                    content=text,
-                                    task_type=task_type,
-                                    title=title)["embedding"]
     
-    def embed_df(self,
-                 df,
-                 title="Title",
-                 text="Text"):
-
-        df['Embeddings'] = df.apply(lambda row: self.embed_text(str(row[title]), str(row[text]), model=self.embed_model), axis=1)
-
+    def clean_location_column(self, df):
+        # Clean the 'Location' column
+        df['Location'] = df['Location'].str.strip().str.title()
         return df
 
-    def embed_query(self, query):
-
-        return genai.embed_content(model=self.embed_model,
-                                   content=query,
-                                   task_type="retrieval_query")["embedding"]
-
-    def retrieve(self,
-                query_embedding, 
-                dataframe, 
-                top_N = 1,
-                similiarity_calculation = "raw_dot") -> pd.Series:
-        """
-        Compute the distances between the query and each document in the dataframe
-        using the dot product.
-
-        Returns:
-            A pd.Series containing a DataFrame with two columns:
-                - 'Text': The text of the top N passages.
-                - 'Score': The corresponding similarity score for each passage.
-        """
-
-        # format the dataframe to select which columns to embed
-
-        if similiarity_calculation == "raw_dot":
-            dot_products = np.dot(np.stack(dataframe['Embeddings']), query_embedding["embedding"])
-            idx = np.argsort(dot_products)[-top_N:][::-1]
-
-            # Create a DataFrame with passages and scores
-            top_passages = pd.DataFrame({'Text': dataframe.iloc[idx]['Text'], 'Score': dot_products[idx]})
-
-            # Return the DataFrame as a Series with a descriptive name
-            return top_passages.reset_index(drop=True).rename(columns={'Text': 'Passage', 'Score': 'Similarity Score'})
-        else:
-            # NOT TESTED
-            # Cosine Similarity Calculation
-            dataframe['Similarity Score'] = dataframe['Embeddings'].apply(
-                lambda x: 1 - cosine(x, query_embedding) 
-            )
-
-            # Efficient Top N Selection
-            top_passages = dataframe.nlargest(top_N, 'Similarity Score')[['Text', 'Similarity Score']]
-            top_passages.reset_index(drop=True, inplace=True)
-
-            return top_passages.rename(columns={'Text': 'Passage'})
-    
-
-
-    # def retrieve1(self, query_embedding, embeddings, chunks, top_N = 5, verbose = False):
-    #     # Calculate similarity between the user question & each chunk
-    #     similarities = [self.cosine_similarity(query_embedding, chunk) for chunk in embeddings]
-    #     if verbose:
-    #         print("similarity scores: ", similarities)
-
-    #     # Get indices of the top 10 most similar chunks
-    #     sorted_indices = np.argsort(similarities)[::-1]
-
-    #     # Keep only the top 10 indices
-    #     top_indices = sorted_indices[:top_N]
-
-    #     # Retrieve the top 10 most similar chunks
-    #     top_chunks_after_retrieval = [chunks[i] for i in top_indices]
-    #     if verbose:
-    #         print(f"Here are the top {top_N} inventories after retrieval: ")
-    #         for t in top_chunks_after_retrieval:
-    #             print("== " + t)
-
-    #     return top_chunks_after_retrieval
-    
+    def update_google_sheet(self, timestamp, prompt, itinerary):
+        gspread_handler = GspreadHandler(credentials_filepath=CREDENTIALS_FILE)
+        """Updates the Google Sheet with the extracted text."""
+        data = [{"itinerary_id":str(timestamp)+'x', "prompt": prompt, "itinerary": itinerary}]
+        df = pd.DataFrame(data)
+        print("Updating Google Sheet...with:\n", df)
+        # replace with the correct sheet name 
+        gspread_handler.update_cols(df, SHEET_NAME, "prompts") #replace with the correct sheet name 
 
     def filter_destinations(self, destination_query, df, columns_to_embed=["Country", "Location"], return_df = False, column_title="Title", top_N=5):
+        df = self.clean_location_column(df)
+
         # # combine the columns to embed
         df['destination'] = df[columns_to_embed].apply(lambda row: ' '.join([str(x) for x in row]), axis=1)
         # Create a regex pattern to find the query anywhere in the destination string (case-insensitive)
@@ -202,33 +98,20 @@ class traveller:
         filtered_df = df[df['destination'].astype(str).str.contains(pattern)]
         # drop destination column
         filtered_df = filtered_df.drop(columns=['destination'])
-        filtered_df = filtered_df[["Type", "Tags", "Title", "Description", "Vendor ID"]]
+        filtered_df = filtered_df[["Title", "Vendor ID", "Activity ID","Type", "Tags", "Description"]]
         # drop duplicates by title
         filtered_df = filtered_df.drop_duplicates(subset=[column_title])
 
         
         return filtered_df
+    
+    def filter_by_tags(self, tags_query, df, columns_to_embed=["Type","Tags", "Title"]):
+        # combine the columns to embed
+        df['tags'] = df[columns_to_embed].apply(lambda row: ' '.join([str(x) for x in row]), axis=1)
+        # Create a regex pattern to find the query anywhere in the destination string (case-insensitive)
+        pattern = re.compile(re.escape(tags_query), re.IGNORECASE)
 
-    def rag_pipeline(self, query, sheet_name, worksheet_name, reembed= False):
-        # 1) Load data
-        df = self.get_df(sheet_name, worksheet_name)
-
-        # 2) Embed data
-        if reembed:
-            embeddings = self.embed_df(df)
-            pickle_this(embeddings, pickle_name=f"{sheet_name}_{worksheet_name}", path = "./database/embeddings/")
-        else:
-            embeddings = pickle_this(pickle_name=f"{sheet_name}_{worksheet_name}", path = "./database/embeddings/")
-
-        # 3) Embed query
-        query_embedding = self.embed_query(query=query)
-
-        # 4) Retrieve top chunks
-        top_chunks_after_retrieval = self.retrieve(query_embedding, embeddings, list(df["meta_data"]))
-
-        # 5) Generate augmented response
-        response = self.augmented_generation(query, top_chunks_after_retrieval)
-        return response
+        pass
     
     def prompt_intent_classifier(self, message):
         """
@@ -236,184 +119,88 @@ class traveller:
         will extract out destination, dates, duration, number_of_pax, tags, budget if available
 
         """
+        user_intent_prompt = f"""You are a travel assistant. A user wants to go on a trip. 
+        Extract the following details if available: destination, dates, duration, number_of_pax, tags, budget, customer_id. 
+        If a detail is not mentioned, leave it as 'NAN'.
+        If duration is NAN, assume it is a 3-day trip for 1 person.
+        IMPORTANT: If the destination is fictional or nonsensical, return 'NAN' for destination.
+        <User Input>:
+        {message}
+        Follow the JSON schema strictly and fill in all required fields.
+        <JSONSchema>{json.dumps(intent_jsonSchema)}</JSONSchema>
+        """
 
-        jsonSchema = {
-                    "type": "object",
-                    "title": "TravelDetails",
-                    "description": "Details about a travel plan including destination, dates, duration, number of pax, tags, and budget.",
-                    "properties": {
-                        "destination": { 
-                        "type": "string", 
-                        "description": "The destination of the trip." 
-                        },
-                        "dates": { 
-                        "type": "string", 
-                        "description": "The dates of the trip (e.g., 2024-06-01 to 2024-06-07)." 
-                        },
-                        "duration": { 
-                        "type": "string", 
-                        "description": "The duration of the trip (e.g., 7 days)." 
-                        },
-                        "number_of_pax": { 
-                        "type": "integer", 
-                        "description": "The number of people going on the trip." 
-                        },
-                        "filter": { 
-                        "type": "array",
-                        "description": "Tags describing the trip (e.g., adventure, hidden gems).",
-                        "items": {
-                            "type": "string"
-                        }
-                        },
-                        "budget": { 
-                        "type": "string", 
-                        "description": "The budget for the trip." 
-                        }
-                    },
-                    "required": ["destination", "dates", "duration", "number_of_pax", "filter", "budget"]
-                    }
-        user_intent_prompt = f"""You are a travel assistant. A user wants to go on a trip. Extract the following details if available: destination, dates, duration, number_of_pax, tags, and budget. If a detail is not mentioned, leave it as 'NAN'. Follow the JSON schema strictly and fill in all required fields.
-
-                <User Input>:
-                {message}
-                Follow the JSON schema strictly and fill in all required fields.
-
-                <JSONSchema>{json.dumps(jsonSchema)}</JSONSchema>
-                """
-        # # user_intent_fields = self.prompt(user_intent_prompt)  
-        # response = self.co.chat(
-        #     model="command-r", 
-        #     message=user_intent_prompt,
-        #     max_tokens=200,
-        #     stop_sequences=["<JSONSchema>"]
-        # )
-
-        # user_intent_fields = response.text
-        # print(user_intent_fields)
-
-        model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY1) 
+        model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY) 
         response = self.prompt(model, user_intent_prompt)
         output = json.loads(response.text)
+        if output["customer_id"] != 'NAN':
+            # load the customer_id from db
+            customer_datas = self.get_df(sheet_name=SHEET_NAME, worksheet_name="customer_profile")
+            # search for the customer_id
+            try:
+                customer_data = customer_datas[customer_datas["CustomerID (Primary Key)"] == output["customer_id"]]
+                output["customer_data"] = customer_data
+            except:
+                output["customer_data"] = "NAN"
+            output["customer_data"] = customer_data
         return output
 
-    def generate_travel_itinerary(self, message):
+    def generate_travel_itinerary(self, message, pure_LLM=False, stream=False, version=2):
         # Firstly check if prompt or other fields exists in message
         if "prompt" in message:
+            initial_prompt = message["prompt"]
             # break this prompt down into destination, dates, duration, number_of_pax, filter, budget
-            """
-            populate the following fields by LLM call to break down the prompt: 
-                * destination: {message["destination"]}
-                * dates: {message["dates"]}
-                * duration: {message["duration"]}
-                * number of pax: {message["number_of_pax"]}
-                * tags: {message["filter"]}
-                * budget: {message["budget"]}
-            """ 
             print(f"Prompt: {message['prompt']}")
             message = self.prompt_intent_classifier(message["prompt"])
-            # check if message["destination"] is "NAN"
-            if message["destination"] == "NAN":
-                empty_response = {
-                                    "itinerary": [
-                                        {
-                                            "activities": [
-                                                {
-                                                    "description": "",
-                                                    "inventory": "",
-                                                    "price": "",
-                                                    "time": "",
-                                                    "title": ""
-                                                },
-                                                {
-                                                    "description": "",
-                                                    "inventory": "",
-                                                    "price": "",
-                                                    "time": "",
-                                                    "title": ""
-                                                },
-                                                {
-                                                    "description": "",
-                                                    "inventory": "",
-                                                    "price": "",
-                                                    "time": "",
-                                                    "title": ""
-                                                }
-                                            ],
-                                            "day": "",
-                                            "description": "",
-                                            "title": ""
-                                        },
-                                        {
-                                            "activities": [
-                                                {
-                                                    "description": "",
-                                                    "inventory": "",
-                                                    "price": "",
-                                                    "time": "",
-                                                    "title": ""
-                                                },
-                                                {
-                                                    "description": "",
-                                                    "inventory": "",
-                                                    "price": "",
-                                                    "time": "",
-                                                    "title": ""
-                                                },
-                                                {
-                                                    "description": "",
-                                                    "inventory": "",
-                                                    "price": "",
-                                                    "time": "",
-                                                    "title": ""
-                                                }
-                                            ],
-                                            "day": "",
-                                            "description": "",
-                                            "title": ""
-                                        }
-                                    ],
-                                    "pricing": {
-                                        "total_cost": ""
-                                    },
-                                    "summary": "No destination provided. Please provide at least a destination to generate an itinerary."
-                                }
-                class EmptyResponse:
-                    def __init__(self, text):
-                        self.text = text
-                empty_response = EmptyResponse(json.dumps(empty_response))
-                # return empty response in format: itinerary_payload["response"].text)
-                itinerary_payload = {"prompt": message, "response": empty_response}
-                return itinerary_payload
+            message["prompt"] = initial_prompt
+
             print(f"----> {message}")
         else:
             # use the other fields to generate the travel package
             pass
-
-        # Load the inventory
-        print("Loading inventory...")
-        df = self.get_df(sheet_name=SHEET_NAME, worksheet_name=WORKSHEET_NAME)
-
-        # Filter inventory based on destination
-        print("Filtering inventory...")
-        columns_to_embed = ["Country", "Location"]
-        column_title = "Title"
-        top_inventories = self.filter_destinations(message["destination"],
-                                                   df, 
-                                                   columns_to_embed = columns_to_embed,
-                                                   column_title=column_title,
-                                                   top_N = 5)
         
-        print(top_inventories)
-        top_inventories_json = top_inventories.to_json(orient='records')
+        if not pure_LLM:
+            # Load the inventory
+            print("Loading inventory...")
+            df = self.get_df(sheet_name=SHEET_NAME, worksheet_name=WORKSHEET_NAME)
+
+            # Filter inventory based on destination
+            print("Filtering inventory...")
+            columns_to_embed = ["Country", "Location"]
+            column_title = "Title"
+            top_inventories = self.filter_destinations(message["destination"],
+                                                    df, 
+                                                    columns_to_embed = columns_to_embed,
+                                                    column_title=column_title,
+                                                    top_N = 5)
+
+            print(top_inventories)
+            top_inventories_json = top_inventories.to_json(orient='records')
+            # pickle this top_inventories_json
+            # x = pickle_this(top_inventories_json, pickle_name="top_inventories", path="./database/top_inventories/")
+        else:
+            top_inventories_json = None
         print("Generating itinerary...")
         # prompt the user to generate the travel package
-        itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json)
-        return itinerary_payload
+        if stream:
+            return self.generate_travel_package_foundational(message, top_inventories_json, pure_LLM=pure_LLM, stream=stream, version=version)
+        else:
+            itinerary_payload = self.generate_travel_package_foundational(message, top_inventories_json, pure_LLM=pure_LLM, version=version, stream=stream)
+            return itinerary_payload
 
-
+    def fix_json(self,text):
+        # Regex pattern to find missing commas after activity objects
+        pattern = r"(\}\s*){"  
+        # Replace missing commas with comma and space
+        corrected_text = re.sub(pattern, "}, ", text)
+        return corrected_text
+    
     def generate_travel_package_foundational(self, 
                                              message, 
-                                             top_inventories = None,):
+                                             top_inventories = None,
+                                             pure_LLM=False, 
+                                             stream=False, 
+                                             version=2):
         """
         This function will consume message with keys:
         * destination
@@ -427,120 +214,107 @@ class traveller:
         # else use only "prompt"
         # check if message["prompt"] exists: if it does, use it to extract the destination
         # check if "prompt" exists in message dict
+        # timestamp id
+        timestamp_id = time.time_ns()
 
-        
-        client_requirements = f"""
-                            * destination: {message["destination"]}
-                            * dates: {message["dates"]}
-                            * duration: {message["duration"]}
-                            * number of pax: {message["number_of_pax"]}
-                            * tags: {message["filter"]}
-                            * budget: {message["budget"]}
+        if version == 1:
+            travel_package_inner_prompt_ = travel_package_inner_prompt_1
+            travel_jsonSchema_ = travel_jsonSchema_1
+        else:
+            travel_package_inner_prompt_ = travel_package_inner_prompt_2
+            travel_jsonSchema_ = travel_jsonSchema_2
+        if pure_LLM:
+            client_requirements = f"""
+                            * prompt: {message["prompt"]} 
                             """
+            top_inventories = None
+        else:
+            client_requirements = f"""
+                                * destination: {message["destination"]}
+                                * dates: {message["dates"]}
+                                * duration: {message["duration"]} days
+                                * number of pax: {message["number_of_pax"]} people
+                                * tags: {message["filter"]}
+                                * budget: {message["budget"]}
+                                """
             # use LLM to extract out destination from the prompt
+        if message["duration"] > 7:
 
-        jsonSchema = {
-        "title": "Travel Itinerary",
-        "type": "object",
-        "properties": {
-            "summary": {"type": "string"},
-            "itinerary": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "day": {"type": "string"},
-                        "title": {"type": "string"},
-                        "description": {"type": "string"},
-                        "activities": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "time": {"type": "string"},
-                                    "title": {"type": "string"},
-                                    "description": {"type": "string"},
-                                    "inventory": {"type": "string"},
-                                    "price": {"type": "string"} 
-                                },
-                                "required": ["time", "title", "description"]
-                            }
-                        }
-                    },
-                    "required": ["day", "title", "description", "activities"]
-                }
-            },
-            "pricing": {
-                "type": "object",
-                "properties": {
-                    "total_cost": {"type": "string"},
-                    "per_day_cost": {"type": "string"},
-                    "per_activity_cost": {"type": "string"}
-                }
-            }
-        },
-        "required": ["summary", "itinerary", "pricing"] 
-    }
-
-        travel_package_prompt = f"""You are a soulful and poetic travel agent creating a comprehensive itinerary given client requirements and available inventory.
-
-        ****INPUTS****
-        ***Client Requirements:***
-        {client_requirements}
-
-        ***Available inventory:***
-        {top_inventories} 
-
-        ****OUTPUT****
-        IMPORTANT NOTE: The itinerary must strictly adhere to the following structure:
-
-        ***summary***
-        Write an engaging one-paragraph summary containing AT LEAST 200 words to recommend the travel itinerary.
-        Open with a captivating sentence highlighting how the itinerary aligns with the traveler's interests (based on tags and the itinerary generated below).
-        Expand on each tag, briefly describing what the destination offers related to each tag, using persuasive language.
-
-        ***itinerary***
-        For EACH day, provide:
-        - A detailed summary (at least 200 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner) 
-        - Activities should be referenced from the Available Inventory, or recommend alternatives based on your knowledge.
-        - For EACH activity, provide a vivid, persuasive description (at least 200 words).
-        - Include pricing and availability for each activity (use "unavailable" if not in inventory).
-
-        Follow this FORMAT for the itinerary section:
-        '''
+            travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary. However you are given a client requirement that is not feasible. The client requires a trip that is more than 10 days.
+            
+            Return the JSONschema strictly:
+            <JSONSchema>{json.dumps(NULL_DURATION_RESPONSE)}</JSONSchema>
+            """
+        elif message["number_of_pax"] > 10:
+            travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary. However you are given a client requirement that is not feasible. The client requires a trip for more than 10 pax.
+            
+            Return the JSONschema strictly:
+            <JSONSchema>{json.dumps(NULL_PAX_RESPONSE)}</JSONSchema>
+            """
+        elif message["destination"] == "NAN":
+            travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary. However you are given a client requirement that is not feasible. The client requires a trip to a fictional or nonsensical destination.
+            
+            Return the JSONschema strictly:
+            <JSONSchema>{json.dumps(NULL_DESTINATION_RESPONSE)}</JSONSchema>
+            """
+        else:
+            travel_package_prompt = f"""You are a travel agent creating a comprehensive itinerary given CLIENT REQUIREMENTS and AVAILABLE INVENTORY.
         
-        "day": "Day 1",
-        "title": "Adventure and Relaxation",
-        "description": "Welcome to Aceh, Indonesia!... (Detailed 200+ word vivid walkthrough of key highlights of the day)"
-        "activities": [
-            "time": "morning", "title": "Lampuuk Beach", "description": "...(Detailed 200+ word vivid walkthrough of the activity)", "inventory": "unavailable", "price": "estimated $40"
-            "time": "afternoon", "title": "...", "description": "...", "inventory": "...", "price": "..."
-            "time": "evening", "title": "...", "description": "...", "inventory": "...", "price": "..."
-            ]
-        ,
-        "day": "Day 2",
-        "title": "Cultural Exploration",
-        "description": "On the nth day of your trip... (Detailed 200+ word vivid walkthrough of key highlights of the day)"
-        "activities": [
-            "time": "morning", "title":"Alue Naga Beach","description": "...(Detailed 200+ word vivid walkthrough of the activity)", "inventory": "vendor ID: x", "price": "$50"
-            "time": "afternoon", "title": "...", "description": "...", "inventory": "...", "price": "..."
-            "time": "evening", "title": "...", "description": "...", "inventory": "...", "price": "..."
-            ]
-        '''
+            ****INPUTS****
+            ***CLIENT REQUIREMENTS:***
+            IMPORTANT: The itinerary must strictly adhere to the client requirements: destination, dates, duration, number of pax, tags, budget;
+            IMPORTANT: make sure the number of days required is adhered to. If x days is required, ensure there are x days in the itinerary.
+            IMPORTANT: Make sure itinerary caters to the number of pax.
+            IMPORTANT: Make sure itinerary caters to the tags and customer_data is available.
+            {client_requirements}
+            ***AVAILABLE INVENTORY:***
+            {top_inventories}
+            Following content outline:
+            {travel_package_inner_prompt_}
 
-        ***pricing***
-        * Calculate the total package cost, referencing the Available Inventory. If pricing isn't available, use "unavailable" for all fields.
-        'pricing': 'total_cost': 'unavailable'
-
-        Follow the JSON schema strictly and fill in all required fields.
-
-        <JSONSchema>{json.dumps(jsonSchema)}</JSONSchema>
-        """
-
-        model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY)
+            Follow the JSONschema strictly (from the content ouline above) fill in all required fields:
+            <JSONSchema>{json.dumps(travel_jsonSchema_)}</JSONSchema>
+            """
+        self.model = self.build_model(self.model_name, api_key=self.GEMINI_API_KEY)
         # measure token count
-        print(f"Token count INPUT: {self.count_tokens(model, travel_package_prompt)}")
-        response_travel_package = self.prompt(model, travel_package_prompt)    
-        print(response_travel_package.text)   
-        self.response_travel_package = response_travel_package.text              
-        return {"prompt": travel_package_prompt, "response": response_travel_package}
+        total_input_tokens = self.count_tokens(self.model, travel_package_prompt)
+        print(f"Token count INPUT: {total_input_tokens.total_tokens} -- INPUT COST: ${total_input_tokens.total_tokens * (7/1e6)}")
+        if stream:
+            # since cant invoke prompt, just return the travel_package_prompt
+            return message, travel_package_prompt
+        else:
+            response_travel_package = self.prompt(self.model, travel_package_prompt, stream = stream)
+
+            total_output_tokens = self.count_tokens(self.model, response_travel_package.text)
+            print(f"Token count OUTPUT: {total_output_tokens.total_tokens} -- OUTPUT COST: ${total_output_tokens.total_tokens * (21/1e6)}")
+            print(response_travel_package.text)               
+            # do update_google_sheet without wating for response, and just return payload
+            t1 = time.time()
+            corrected_json_text = self.fix_json(response_travel_package.text)
+            self.update_google_sheet(timestamp_id, str(message), corrected_json_text)
+            t2 = time.time()
+            print(f"Time taken to update Google Sheet: {t2-t1}")
+            return {"prompt": travel_package_prompt, "response": response_travel_package, "total_input_tokens": total_input_tokens, "total_output_tokens": total_output_tokens}
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
