@@ -5,7 +5,6 @@ import time
 import os
 import pandas as pd
 import fitz
-from pdf2image import convert_from_path
 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -13,7 +12,6 @@ from googleapiclient.errors import HttpError
 from oauth2client.service_account import ServiceAccountCredentials
 
 from gdrive.gdrive_handler import GspreadHandler
-from settings import GEMINI_API_KEY
 from llm_handler.GHandler import GHandler
 
 class GoogleDriveExtractor:

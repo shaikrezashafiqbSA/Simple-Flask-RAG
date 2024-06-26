@@ -7,8 +7,8 @@ intent_jsonSchema = {
             "description": "Details about a travel plan including destination, dates, duration, number of pax, tags, and budget.",
             "properties": {
                 "destination": { 
-                "type": "string", 
-                "description": "The destination of the trip." 
+                "type": "str", 
+                "description": "The destination of the trip."
                 },
                 "dates": { 
                 "type": "string", 
