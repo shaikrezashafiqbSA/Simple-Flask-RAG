@@ -155,6 +155,7 @@ def generate_package_from_model_V3():
     
             top_inventories = None
             timestamp_id = time.time_ns()
+            customer_id = message.get("customer_id", "NAN")
             def generate():
                     summary_match_flag = True
                     country_match_flag = True
@@ -292,7 +293,7 @@ def generate_package_from_model_V3():
 
                     # print(f"all_content: {all_content}")
                     corrected_json_text = rag.fix_json(all_content)
-                    rag.update_google_sheet(timestamp_id, str(message), corrected_json_text)
+                    rag.update_google_sheet(timestamp_id, customer_id, str(message), corrected_json_text)
                     print(f"SAVED TO DB")
 
             # stream_response = model.generate_content(query, stream=True)

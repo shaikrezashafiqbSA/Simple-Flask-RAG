@@ -160,7 +160,7 @@ travel_package_inner_prompt_2 = """
         ***itinerary***
         For EACH day, provide:
         - A detailed summary (at least 100 words) outlining the day's plan, structured around morning, afternoon, and evening. (structured around breakfast, lunch, dinner)
-        - Activities, accomodation should be constructed as much as possible from whatever in AVAILABLE INVENTORY LIST matching as best as possible to the CLIENT REQUIREMENTS (especially to tags), ELSE recommend better alternatives based on your knowledge that better matches the CLIENT REQUIREMENTS.
+        - Food, places MUST be utilised from whatever in AVAILABLE INVENTORY LIST matching perfectly to the CLIENT REQUIREMENTS, ELSE recommend better alternatives based on your knowledge that better matches the CLIENT REQUIREMENTS.
         - The AVAILABLE INVENTORY LIST is a list of inventories (from accomodation packages, to activities, to food) that can be fulfilled in the destination. It includes the following fields: "title", "Vendor ID", "Activity ID", "Type", "Tags", "Description". Where "Description" includes inventory specifications such as activity/accomodation/pricing
         - IMPORTANT: THERE MUST BE as much days as per CLIENT REQUIREMENTS.
         - IMPORTANT: THERE MUST BE at at least 1 morning, afternoon, and evening food, places activity for each day.
@@ -169,7 +169,7 @@ travel_package_inner_prompt_2 = """
         - Limit tags to a maximum of 2 per time slot.
         - IMPORTANT: There must be at least 1 food activity and 1 places activity for each day's time slot.
         - IMPORTANT: For each food activity and places activity referenced from AVAILABLE INVENTORY, summarize as much data (in at least 3 sentences) and description as possible from the "Description".  
-        - IMPORTANT: There MUST not be repeat activities in the itinerary. There must be no repeat food activities from the same place.
+        - CRUCIALLY IMPORTANT: There MUST be NO repeat food/places activities from the same place.
 
         ***pricing***
         * Calculate the total package cost for total pax, referencing the prices from the AVAILABLE INVENTORY else estimate from your knowledge.
