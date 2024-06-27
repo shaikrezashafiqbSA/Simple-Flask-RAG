@@ -17,7 +17,6 @@ travel_package_inner_prompt_1 = """
 
         Follow this FORMAT for the itinerary section:
         '''
-        
         "day": "Day 1",
         "title": "Adventure and Relaxation",
         "description": "Welcome to Aceh, Indonesia!... (Detailed 200+ word vivid walkthrough of key highlights of the day)"
