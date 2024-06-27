@@ -91,6 +91,7 @@ def generate_package_from_model_V2():
         if not validate_token(token):
             return "Invalid token", 401
         print(request.json) 
+        
         """
         Example:
         request.json = {"destination":"penang",
@@ -349,8 +350,8 @@ from settings import GEMINI_API_KEY
 from data.ingest import GoogleDriveExtractor
 
 
-@app.route('/api/ingest/<folder_link>', methods=['GET'])
-def ingest(folder_link):
+@app.route('/api/ingest', methods=['GET'])
+def ingest():
     if request.method == 'GET':
         bearer_token = request.headers.get('Authorization')
         print(bearer_token)
@@ -361,22 +362,30 @@ def ingest(folder_link):
         print(token)
         if not validate_token(token):
             return "Invalid token", 401
-        print(f"folder_link---{folder_link}")
+        msg = request.json
+        """
+        msg = {
+        "folder_link": "https://drive.google.com/drive/folders/1uD7SEGQ5Y2o6oXMp-s53kKnKXXsVSD-X",
+        "worksheet_name":"inventory",
+        "columns_to_extract": ["Title", "Description", "Location", "Price", "Duration", "Tags", "Cover", "Vendor ID", "Activity ID"]
+                ""}
+        """
+        folder_link = msg.get("folder_link")
+        folder_link = "https://drive.google.com/drive/folders/" + folder_link
 
         if not isinstance(folder_link, str):
             return jsonify({"error": "folder_link must be a string"}), 400
         extractor = GoogleDriveExtractor(
-            credentials_file="smart-platform.json", 
-            sheet_name="Master Database",
+            credentials_file=CREDENTIALS_FILE, 
+            sheet_name=SHEET_NAME,
             worksheet_name="inventory", 
             gemini_api_key=GEMINI_API_KEY 
         )
-        folder_link= "https://drive.google.com/drive/folders/1uD7SEGQ5Y2o6oXMp-s53kKnKXXsVSD-X"
 
         try:
             # load folder unto the database
             extractor.run_ETL(folder_link)
-
+            return jsonify({"message": "Ingested successfully"}), 200
         except Exception as e:
             print(f"Error ingesting: {e}")
             return jsonify({"error": f"ingesting {e}"}), 500
