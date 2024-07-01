@@ -187,7 +187,7 @@ travel_package_inner_prompt_2 = """
                         "title": "Morning Exploration in George Town",
                         "description": "Start your day in the heart of Penang's capital...",
                         "city": "George Town",
-                        "cover": "/malaysia/penang/georgetown_morning.jpg",
+                        "cover": "/malaysia/penang/georgetown_morning.jpg", #https://smartworld-web.s3.ap-southeast-1.amazonaws.com/malaysia/malacca/activity/tours/1.jpg
                         "foods": [
                         {"name": "Breakfast at Toh Soon Cafe", 
                         "description": "Enjoy a local breakfast of charcoal-toasted bread...",

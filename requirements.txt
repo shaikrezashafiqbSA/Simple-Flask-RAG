@@ -19,3 +19,4 @@ tqdm
 Flask-CORS
 PyJWT
 gunicorn
+python-telegram-bot
