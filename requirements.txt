@@ -7,7 +7,7 @@ openpyxl
 google-generativeai
 google-cloud-aiplatform
 
-cohere
+oauth2client
 gspread
 PyPDF2
 Pillow
@@ -19,3 +19,4 @@ tqdm
 Flask-CORS
 PyJWT
 gunicorn
+python-telegram-bot

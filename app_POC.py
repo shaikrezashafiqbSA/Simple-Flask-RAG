@@ -91,6 +91,7 @@ def generate_package_from_model_V2():
         if not validate_token(token):
             return "Invalid token", 401
         print(request.json) 
+        
         """
         Example:
         request.json = {"destination":"penang",
@@ -155,6 +156,7 @@ def generate_package_from_model_V3():
     
             top_inventories = None
             timestamp_id = time.time_ns()
+            customer_id = message.get("customer_id", "NAN")
             def generate():
                     summary_match_flag = True
                     country_match_flag = True
@@ -292,7 +294,7 @@ def generate_package_from_model_V3():
 
                     # print(f"all_content: {all_content}")
                     corrected_json_text = rag.fix_json(all_content)
-                    rag.update_google_sheet(timestamp_id, str(message), corrected_json_text)
+                    rag.update_google_sheet(timestamp_id, customer_id, str(message), corrected_json_text)
                     print(f"SAVED TO DB")
 
             # stream_response = model.generate_content(query, stream=True)
@@ -342,6 +344,51 @@ def get_itinerary(timestamp):
         except Exception as e:
             print(f"Error retrieving itinerary: {e}")
             return jsonify({"error": "Error retrieving itinerary"}), 500
+        
+
+from settings import GEMINI_API_KEY
+from data.ingest import GoogleDriveExtractor
+
+
+@app.route('/api/ingest', methods=['GET'])
+def ingest():
+    if request.method == 'GET':
+        bearer_token = request.headers.get('Authorization')
+        print(bearer_token)
+        if not bearer_token:
+            return "Unauthorized", 401
+
+        token = bearer_token.split()[1]  # Extract the actual token
+        print(token)
+        if not validate_token(token):
+            return "Invalid token", 401
+        msg = request.json
+        """
+        msg = {
+        "folder_link": "https://drive.google.com/drive/folders/1uD7SEGQ5Y2o6oXMp-s53kKnKXXsVSD-X",
+        "worksheet_name":"inventory",
+        "columns_to_extract": ["Title", "Description", "Location", "Price", "Duration", "Tags", "Cover", "Vendor ID", "Activity ID"]
+                ""}
+        """
+        folder_link = msg.get("folder_link")
+        folder_link = "https://drive.google.com/drive/folders/" + folder_link
+
+        if not isinstance(folder_link, str):
+            return jsonify({"error": "folder_link must be a string"}), 400
+        extractor = GoogleDriveExtractor(
+            credentials_file=CREDENTIALS_FILE, 
+            sheet_name=SHEET_NAME,
+            worksheet_name="inventory", 
+            gemini_api_key=GEMINI_API_KEY 
+        )
+
+        try:
+            # load folder unto the database
+            extractor.run_ETL(folder_link)
+            return jsonify({"message": "Ingested successfully"}), 200
+        except Exception as e:
+            print(f"Error ingesting: {e}")
+            return jsonify({"error": f"ingesting {e}"}), 500
 
 # ======================================================================================================================
 # PURE LLM

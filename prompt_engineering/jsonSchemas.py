@@ -7,8 +7,8 @@ intent_jsonSchema = {
             "description": "Details about a travel plan including destination, dates, duration, number of pax, tags, and budget.",
             "properties": {
                 "destination": { 
-                "type": "string", 
-                "description": "The destination of the trip." 
+                "type": "str", 
+                "description": "The destination of the trip."
                 },
                 "dates": { 
                 "type": "string", 
@@ -41,7 +41,45 @@ intent_jsonSchema = {
             "required": ["destination", "dates", "duration", "number_of_pax", "filter", "budget", "customer_id"]
             }
 
-
+intent_jsonSchema_multi_dest = {
+            "type": "object",
+            "title": "TravelDetails",
+            "description": "Details about a travel plan including destination, dates, duration, number of pax, tags, budget and customer_id.",
+            "properties": {
+                "destination": { 
+                "type": "array", 
+                "description": "a list of destinations for the trip, could be singular. (e.g., [\"Kedah\", \"Perlis\"]).",
+                },
+                "dates": { 
+                "type": "string", 
+                "description": "The dates of the trip (e.g., 2024-06-01 to 2024-06-07)." 
+                },
+                "duration": { 
+                "type": "integer", 
+                "description": "The duration in days of the trip (e.g., 7)." 
+                },
+                "number_of_pax": { 
+                "type": "integer", 
+                "description": "The number of people going on the trip." 
+                },
+                "filter": { 
+                "type": "array",
+                "description": "Tags describing the trip (e.g., adventure, hidden gems).",
+                "items": {
+                    "type": "string"
+                }
+                },
+                "budget": { 
+                "type": "string", 
+                "description": "The budget for the trip." 
+                },
+                "customer_id": { 
+                "type": "string", 
+                "description": "customer if provided, else NAN" 
+                }
+            },
+            "required": ["destination", "dates", "duration", "number_of_pax", "filter", "budget", "customer_id"]
+            }
 
 travel_jsonSchema_1 = {
         "title": "Travel Itinerary",
@@ -423,3 +461,44 @@ travel_jsonSchema_2 = {
     },
     "required": ["summary", "country", "main_cover", "itinerary","pricing"] # Added "prompt"
 }
+
+
+intent_jsonSchema_ETL = {
+            "type": "object",
+            "title": "TravelDetails",
+            "description": "Details about a travel plan including destination, dates, duration, number of pax, tags, budget and customer_id.",
+            "properties": {
+                "destination": { 
+                "type": "array", 
+                "description": "a list of destinations for the trip, could be singular. (e.g., [\"Kedah\", \"Perlis\"]).",
+                },
+                "dates": { 
+                "type": "string", 
+                "description": "The dates of the trip (e.g., 2024-06-01 to 2024-06-07)." 
+                },
+                "duration": { 
+                "type": "integer", 
+                "description": "The duration in days of the trip (e.g., 7)." 
+                },
+                "number_of_pax": { 
+                "type": "integer", 
+                "description": "The number of people going on the trip." 
+                },
+                "filter": { 
+                "type": "array",
+                "description": "Tags describing the trip (e.g., adventure, hidden gems).",
+                "items": {
+                    "type": "string"
+                }
+                },
+                "budget": { 
+                "type": "string", 
+                "description": "The budget for the trip." 
+                },
+                "customer_id": { 
+                "type": "string", 
+                "description": "customer if provided, else NAN" 
+                }
+            },
+            "required": ["Title", "Description", "Location", "Price", "Duration", "Tags", "Cover", "Vendor ID", "Activity ID"]
+            }
